@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
+
 %lang starknet
 
-func test():
-    return ()
+namespace StakingRewards:
 end
