@@ -1,11 +1,11 @@
 import "@nomicfoundation/hardhat-toolbox";
+import "@shardlabs/starknet-hardhat-plugin";
 import { config as dotenvConfig } from "dotenv";
 import type { HardhatUserConfig } from "hardhat/config";
 import type { NetworkUserConfig } from "hardhat/types";
 import { resolve } from "path";
 
 import "./tasks/accounts";
-import "./tasks/deploy";
 
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || "./.env";
 dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });
@@ -83,14 +83,8 @@ const config: HardhatUserConfig = {
       },
       chainId: chainIds.hardhat,
     },
-    arbitrum: getChainConfig("arbitrum-mainnet"),
-    avalanche: getChainConfig("avalanche"),
-    bsc: getChainConfig("bsc"),
     goerli: getChainConfig("goerli"),
     mainnet: getChainConfig("mainnet"),
-    optimism: getChainConfig("optimism-mainnet"),
-    "polygon-mainnet": getChainConfig("polygon-mainnet"),
-    "polygon-mumbai": getChainConfig("polygon-mumbai"),
   },
   paths: {
     artifacts: "./artifacts",
@@ -117,6 +111,10 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: "src/types",
     target: "ethers-v5",
+  },
+  starknet: {
+    // uses current activated venv or global installation
+    venv: "active",
   },
 };
 

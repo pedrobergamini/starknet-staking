@@ -1,10 +1,10 @@
 {
-  "name": "@prb/hardhat-template",
-  "description": "Hardhat-based template for developing Solidity smart contracts",
+  "name": "starknet-staking",
+  "description": "Starknet staking rewards contracts example with L1 messaging features",
   "version": "1.0.0",
   "author": {
-    "name": "Paul Razvan Berg",
-    "url": "https://github.com/paulrberg"
+    "name": "Pedro Bergamini",
+    "url": "https://github.com/pedrobergamini"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.0.3",
@@ -19,6 +19,7 @@
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@nomiclabs/hardhat-ethers": "^2.1.0",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
+    "@shardlabs/starknet-hardhat-plugin": "^0.6.5",
     "@trivago/prettier-plugin-sort-imports": "^3.3.0",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
