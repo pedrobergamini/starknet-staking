@@ -1,3 +1,4 @@
-* linguist-vendored
-*.cairo linguist-vendored=false
-*.sol linguist-vendored=false
+# * linguist-vendored
+# *.cairo linguist-vendored=false
+# *.sol linguist-vendored=false
+*.cairo linguist-language=python
