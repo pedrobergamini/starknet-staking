@@ -2,24 +2,26 @@
 
 %lang starknet
 
+from starkware.cairo.common.uint256 import Uint256
+
 @contract_interface
 namespace IStakingRewards:
     #
     # View functions
     #
-    func balanceOf(account : felt) -> (balance : felt):
+    func balanceOf(account : felt) -> (balance : Uint256):
     end
 
-    func earned(account : felt) -> (reward : felt):
+    func earned(account : felt) -> (reward : Uint256):
     end
 
-    func getRewardForDuration() -> (reward : felt):
+    func getRewardForDuration() -> (reward : Uint256):
     end
 
     func lastTimeRewardApplicable() -> (timestamp : felt):
     end
 
-    func rewardPerToken() -> (reward_per_token : felt):
+    func rewardPerToken() -> (reward_per_token : Uint256):
     end
 
     func rewardsDistribution() -> (contract_address : felt):
@@ -28,7 +30,7 @@ namespace IStakingRewards:
     func rewardToken() -> (token : felt):
     end
 
-    func totalSupply() -> (total_supply : felt):
+    func totalSupply() -> (total_supply : Uint256):
     end
 
     #
