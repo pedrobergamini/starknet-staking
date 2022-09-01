@@ -89,8 +89,9 @@ const config: HardhatUserConfig = {
   paths: {
     artifacts: "./artifacts",
     cache: "./cache",
-    sources: "./contracts",
+    sources: "./contracts/l1",
     tests: "./test",
+    starknetSources: "./contracts/l2",
   },
   solidity: {
     version: "0.8.15",
