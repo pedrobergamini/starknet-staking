@@ -3,7 +3,10 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.cairo.common.uint256 import Uint256, uint256_mul
+from starkware.cairo.common.uint256 import Uint256, uint256_eq
+from starkware.cairo.common.math_cmp import is_le
+from starkware.cairo.common.bool import TRUE
+from starkware.starknet.common.syscalls import get_block_timestamp
 from contracts.l2.openzeppelin.security.safemath.library import SafeUint256
 
 #
@@ -27,6 +30,10 @@ end
 
 @storage_var
 func StakingRewards_reward_rate() -> (reward_rate : Uint256):
+end
+
+@storage_var
+func StakingRewards_total_supply() -> (total_supply : Uint256):
 end
 
 @storage_var
@@ -64,7 +71,34 @@ namespace StakingRewards:
     func reward_per_token{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
         reward : Uint256
     ):
-        return (Uint256(1, 0))
+        alloc_locals
+        let (local total_supply : Uint256) = StakingRewards_total_supply.read()
+        let (local reward_per_token_stored : Uint256) = StakingRewards_reward_per_token.read()
+        let (is_total_supply_zero) = uint256_eq(total_supply, Uint256(0, 0))
+
+        if is_total_supply_zero == TRUE:
+            return (reward_per_token_stored)
+        end
+
+        let (local last_applicable_timestamp) = last_time_reward_applicable()
+        let (local last_update_time) = StakingRewards_last_update_time.read()
+        let (local reward_rate : Uint256) = StakingRewards_reward_rate.read()
+
+        let (time_delta : Uint256) = SafeUint256.sub_le(
+            Uint256(last_applicable_timestamp, 0), Uint256(last_update_time, 0)
+        )
+        let (new_rewards_accumulated : Uint256) = SafeUint256.mul(time_delta, reward_rate)
+        let (new_rewards_accumulated_denorm : Uint256) = SafeUint256.mul(
+            new_rewards_accumulated, BASE_MULTIPLIER
+        )
+        let (new_rewards_accumulated_per_token : Uint256, _) = SafeUint256.div_rem(
+            new_rewards_accumulated_denorm, total_supply
+        )
+        let (reward : Uint256) = SafeUint256.add(
+            reward_per_token_stored, new_rewards_accumulated_per_token
+        )
+
+        return (reward)
     end
 
     func earned{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -105,5 +139,19 @@ namespace StakingRewards:
         let (reward_for_duration : Uint256) = SafeUint256.mul(reward_rate, Uint256(duration, 0))
 
         return (reward_for_duration)
+    end
+
+    func last_time_reward_applicable{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }() -> (timestamp : felt):
+        let (block_timestamp) = get_block_timestamp()
+        let (period_finish) = StakingRewards_period_finish.read()
+        let (is_period_finished) = is_le(period_finish, block_timestamp)
+
+        if is_period_finished == TRUE:
+            return (period_finish)
+        end
+
+        return (block_timestamp)
     end
 end
