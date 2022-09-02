@@ -16,12 +16,19 @@ from contracts.l2.openzeppelin.security.safemath.library import SafeUint256
 # @dev Base rewards calculation multiplier, used for divisions
 const BASE_MULTIPLIER = 10 ** 18
 
+#
+# Storage
+#
 @storage_var
 func StakingRewards_reward_token() -> (token : felt):
 end
 
 @storage_var
 func StakingRewards_staking_token() -> (token : felt):
+end
+
+@storage_var
+func StakingRewards_rewards_distribution() -> (contract_address : felt):
 end
 
 @storage_var
@@ -61,44 +68,15 @@ func StakingRewards_balances(account : felt) -> (balance : Uint256):
 end
 
 namespace StakingRewards:
+    #
+    # Public functions
+    #
+
     func balance_of{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         account : felt
     ) -> (balance : Uint256):
         let (balance : Uint256) = StakingRewards_balances.read(account)
         return (balance)
-    end
-
-    func reward_per_token{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-        reward : Uint256
-    ):
-        alloc_locals
-        let (local total_supply : Uint256) = StakingRewards_total_supply.read()
-        let (local reward_per_token_stored : Uint256) = StakingRewards_reward_per_token.read()
-        let (is_total_supply_zero) = uint256_eq(total_supply, Uint256(0, 0))
-
-        if is_total_supply_zero == TRUE:
-            return (reward_per_token_stored)
-        end
-
-        let (local last_applicable_timestamp) = last_time_reward_applicable()
-        let (local last_update_time) = StakingRewards_last_update_time.read()
-        let (local reward_rate : Uint256) = StakingRewards_reward_rate.read()
-
-        let (time_delta : Uint256) = SafeUint256.sub_le(
-            Uint256(last_applicable_timestamp, 0), Uint256(last_update_time, 0)
-        )
-        let (new_rewards_accumulated : Uint256) = SafeUint256.mul(time_delta, reward_rate)
-        let (new_rewards_accumulated_denorm : Uint256) = SafeUint256.mul(
-            new_rewards_accumulated, BASE_MULTIPLIER
-        )
-        let (new_rewards_accumulated_per_token : Uint256, _) = SafeUint256.div_rem(
-            new_rewards_accumulated_denorm, total_supply
-        )
-        let (reward : Uint256) = SafeUint256.add(
-            reward_per_token_stored, new_rewards_accumulated_per_token
-        )
-
-        return (reward)
     end
 
     func earned{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -153,5 +131,61 @@ namespace StakingRewards:
         end
 
         return (block_timestamp)
+    end
+
+    func reward_per_token{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+        reward : Uint256
+    ):
+        alloc_locals
+        let (local total_supply : Uint256) = StakingRewards_total_supply.read()
+        let (local reward_per_token_stored : Uint256) = StakingRewards_reward_per_token.read()
+        let (is_total_supply_zero) = uint256_eq(total_supply, Uint256(0, 0))
+
+        if is_total_supply_zero == TRUE:
+            return (reward_per_token_stored)
+        end
+
+        let (local last_applicable_timestamp) = last_time_reward_applicable()
+        let (local last_update_time) = StakingRewards_last_update_time.read()
+        let (local reward_rate : Uint256) = StakingRewards_reward_rate.read()
+
+        let (time_delta : Uint256) = SafeUint256.sub_le(
+            Uint256(last_applicable_timestamp, 0), Uint256(last_update_time, 0)
+        )
+        let (new_rewards_accumulated : Uint256) = SafeUint256.mul(time_delta, reward_rate)
+        let (new_rewards_accumulated_denorm : Uint256) = SafeUint256.mul(
+            new_rewards_accumulated, BASE_MULTIPLIER
+        )
+        let (new_rewards_accumulated_per_token : Uint256, _) = SafeUint256.div_rem(
+            new_rewards_accumulated_denorm, total_supply
+        )
+        let (reward : Uint256) = SafeUint256.add(
+            reward_per_token_stored, new_rewards_accumulated_per_token
+        )
+
+        return (reward)
+    end
+
+    func rewards_distribution{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        ) -> (res : felt):
+        let (res) = StakingRewards_rewards_distribution.read()
+
+        return (res)
+    end
+
+    func reward_token{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+        token : felt
+    ):
+        let (token) = StakingRewards_reward_token.read()
+
+        return (token)
+    end
+
+    func total_supply{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+        res : Uint256
+    ):
+        let (res : Uint256) = StakingRewards_total_supply.read()
+
+        return (res)
     end
 end
