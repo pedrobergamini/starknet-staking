@@ -36,16 +36,15 @@ namespace IStakingRewards:
     #
     # External functions
     #
+    func stake(amount : Uint256) -> (success : felt):
+    end
+
+    func withdraw(amount : Uint256) -> (success : felt):
+    end
 
     func exit() -> (success : felt):
     end
 
     func claimReward() -> (success : felt):
-    end
-
-    func stake(amount : felt) -> (success : felt):
-    end
-
-    func withdraw(amount : felt) -> (success : felt):
     end
 end
