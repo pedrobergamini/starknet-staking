@@ -4,7 +4,7 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_eq
-from starkware.cairo.common.math_cmp import is_le
+from starkware.cairo.common.math_cmp import is_le, is_not_zero
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.starknet.common.syscalls import (
     get_block_timestamp,
@@ -219,22 +219,35 @@ namespace StakingRewards:
 
         let (current_total_supply : Uint256) = StakingRewards_total_supply.read()
         let (new_total_supply : Uint256) = SafeUint256.add(current_total_supply, amount)
-        StakingRewards_total_supply.write(new_total_supply)
         let (current_balance : Uint256) = StakingRewards_balances.read(caller)
         let (new_balance : Uint256) = SafeUint256.add(current_balance, amount)
-        StakingRewards_balances.write(caller, new_balance)
         let (staking_token_address) = StakingRewards_staking_token.read()
         let (this_contract) = get_contract_address()
+
+        StakingRewards_total_supply.write(new_total_supply)
+        StakingRewards_balances.write(caller, new_balance)
         SafeERC20.safe_transfer_from(staking_token_address, caller, this_contract, amount)
 
         LogStake.emit(caller, amount)
     end
 
     #
-    # Internal
+    # Internal functions
     #
     func _update_reward{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         caller : felt
     ):
+        alloc_locals
+        let (is_valid_caller) = is_not_zero(caller)
+
+        if is_valid_caller == TRUE:
+            let (reward_per_token_stored : Uint256) = StakingRewards_reward_per_token.read()
+            let (last_update_time) = last_time_reward_applicable()
+            let (account_reward_earned : Uint256) = earned(caller)
+            StakingRewards_rewards.write(caller, account_reward_earned)
+            StakingRewards_reward_per_token_paid(caller, reward_per_token_stored)
+            return ()
+        end
+        return ()
     end
 end
