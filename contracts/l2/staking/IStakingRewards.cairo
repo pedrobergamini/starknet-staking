@@ -27,6 +27,9 @@ namespace IStakingRewards:
     func rewardsDistribution() -> (contract_address : felt):
     end
 
+    func stakingToken() -> (token : felt):
+    end
+
     func rewardToken() -> (token : felt):
     end
 
@@ -36,6 +39,15 @@ namespace IStakingRewards:
     #
     # External functions
     #
+    func notifyRewardAmount(reward : Uint256) -> (success : felt):
+    end
+
+    func recoverERC20(token : felt, amount : Uint256) -> (success : felt):
+    end
+
+    func setRewardsDuration(duration : felt) -> (success : felt):
+    end
+
     func stake(amount : Uint256) -> (success : felt):
     end
 

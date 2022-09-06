@@ -4,7 +4,7 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_eq
-from starkware.cairo.common.math import assert_not_zero
+from starkware.cairo.common.math import assert_not_zero, assert_lt, assert_le, assert_not_equal
 from starkware.cairo.common.math_cmp import is_le, is_not_zero
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.starknet.common.syscalls import (
@@ -14,6 +14,7 @@ from starkware.starknet.common.syscalls import (
 )
 from contracts.l2.lib.SafeERC20 import SafeERC20
 from contracts.l2.openzeppelin.security.safemath.library import SafeUint256
+from contracts.l2.openzeppelin.token.erc20.IERC20 import IERC20
 
 #
 # Constants
@@ -21,6 +22,7 @@ from contracts.l2.openzeppelin.security.safemath.library import SafeUint256
 
 # @dev Base rewards calculation multiplier, used for divisions
 const BASE_MULTIPLIER = 10 ** 18
+const MAX_UINT256_MEMBER = 2 ** 128 - 1
 
 #
 # Events
@@ -35,6 +37,14 @@ end
 
 @event
 func LogClaimReward(user : felt, reward : Uint256):
+end
+
+@event
+func LogSetRewardsDuration(duration : felt):
+end
+
+@event
+func LogNotifyRewardAmount(reward : Uint256):
 end
 
 @event
@@ -97,6 +107,9 @@ namespace StakingRewards:
     # Public functions
     #
 
+    #
+    # View public functions
+    #
     func balance_of{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         account : felt
     ) -> (balance : Uint256):
@@ -201,6 +214,14 @@ namespace StakingRewards:
         return (res)
     end
 
+    func staking_token{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+        token : felt
+    ):
+        let (token) = StakingRewards_staking_token.read()
+
+        return (token)
+    end
+
     func reward_token{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
         token : felt
     ):
@@ -217,6 +238,82 @@ namespace StakingRewards:
         return (res)
     end
 
+    #
+    # Mutative public functions
+    #
+
+    func set_rewards_duration{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        duration : felt
+    ):
+        alloc_locals
+        with_attr error_message("StakingRewards: invalid duration"):
+            assert_le(duration, MAX_UINT256_MEMBER)
+        end
+        let (block_timestamp) = get_block_timestamp()
+        let (period_finish) = StakingRewards_period_finish.read()
+
+        with_attr error_message("StakingRewards: Previous rewards period must finish"):
+            assert_lt(period_finish, block_timestamp)
+        end
+
+        StakingRewards_rewards_duration.write(duration)
+        LogSetRewardsDuration.emit(duration)
+
+        return ()
+    end
+
+    func recover_erc20{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        token : felt, receiver : felt, amount : Uint256
+    ):
+        let (reward_token) = reward_token()
+        with_attr error_message("StakingRewards: Cannot recover staking token"):
+            assert_not_equal(reward_token, token)
+        end
+        let (this_contract) = get_contract_address()
+
+        SafeERC20.safe_transfer_from(token, this_contract, receiver, amount)
+        LogRecoverERC20.emit(token, amount)
+    end
+
+    func notify_reward_amount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        reward : Uint256
+    ):
+        alloc_locals
+        _update_reward(0)
+        let (block_timestamp) = get_block_timestamp()
+        let (period_finish) = StakingRewards_period_finish.read()
+        let (duration) = StakingRewards_rewards_duration.read()
+        let (is_period_finished) = is_le(period_finish, block_timestamp)
+        local reward_rate : Uint256
+
+        if is_period_finished == TRUE:
+            let (new_reward_rate : Uint256, _) = SafeUint256.div_rem(reward, Uint256(duration, 0))
+            StakingRewards_reward_rate.write(new_reward_rate)
+            reward_rate = StakingRewards_reward_rate.read()
+        else:
+            let (remaining_time : Uint256) = SafeUint256.sub_le(period_finish, block_timestamp)
+            reward_rate = StakingRewards_reward_rate.read()
+            let (leftover : Uint256) = SafeUint256.mul(remaining_time, reward_rate)
+        end
+
+        let (reward_token_address) = reward_token()
+        let (this_contract) = get_contract_address()
+        let (balance : Uint256) = IERC20.balanceOf(
+            contract_address=reward_token_address, account=this_contract
+        )
+        with_attr error_message("StakingRewards: Provided reward too high"):
+            let (balance_reward_rate : Uint256, _) = SafeUint256.div_rem(balance, duration)
+            assert_le(reward_rate, balance_reward_rate)
+        end
+        let (new_period_finish) = SafeUint256.add(Uint256(block_timestamp, 0), Uint256(duration, 0))
+
+        StakingRewards_last_update_time.write(block_timestamp)
+        StakingRewards_period_finish.write(new_period_finish)
+        LogNotifyRewardAmount.emit(reward)
+
+        return ()
+    end
+
     func stake{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(amount : Uint256):
         alloc_locals
         let (caller) = get_caller_address()
@@ -231,14 +328,14 @@ namespace StakingRewards:
         let (new_total_supply : Uint256) = SafeUint256.add(current_total_supply, amount)
         let (current_balance : Uint256) = StakingRewards_balances.read(caller)
         let (new_balance : Uint256) = SafeUint256.add(current_balance, amount)
-        let (staking_token_address) = StakingRewards_staking_token.read()
+        let (staking_token_address) = staking_token()
         let (this_contract) = get_contract_address()
 
         StakingRewards_total_supply.write(new_total_supply)
         StakingRewards_balances.write(caller, new_balance)
         SafeERC20.safe_transfer_from(staking_token_address, caller, this_contract, amount)
-
         LogStake.emit(caller, amount)
+
         return ()
     end
 
@@ -258,14 +355,14 @@ namespace StakingRewards:
         let (new_total_supply : Uint256) = SafeUint256.sub_le(current_total_supply, amount)
         let (current_balance : Uint256) = StakingRewards_balances.read(caller)
         let (new_balance : Uint256) = SafeUint256.sub_le(current_balance, amount)
-        let (staking_token_address) = StakingRewards_staking_token.read()
+        let (staking_token_address) = staking_token()
         let (this_contract) = get_contract_address()
 
         StakingRewards_total_supply.write(new_total_supply)
         StakingRewards_balances.write(caller, new_balance)
         SafeERC20.safe_transfer_from(staking_token_address, this_contract, caller, amount)
-
         LogWithdraw.emit(caller, amount)
+
         return ()
     end
 
@@ -279,7 +376,7 @@ namespace StakingRewards:
         let (is_pending_reward_zero) = uint256_eq(pending_reward, Uint256(0, 0))
 
         if is_pending_reward_zero == FALSE:
-            let (reward_token_address) = StakingRewards_reward_token.read()
+            let (reward_token_address) = reward_token()
             let (this_contract) = get_contract_address()
 
             StakingRewards_rewards.write(caller, Uint256(0, 0))
