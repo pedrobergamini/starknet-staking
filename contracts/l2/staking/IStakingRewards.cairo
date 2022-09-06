@@ -42,9 +42,9 @@ namespace IStakingRewards:
     func withdraw(amount : Uint256) -> (success : felt):
     end
 
-    func exit() -> (success : felt):
+    func claimReward() -> (success : felt):
     end
 
-    func claimReward() -> (success : felt):
+    func exit() -> (success : felt):
     end
 end

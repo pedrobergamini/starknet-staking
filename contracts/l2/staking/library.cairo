@@ -4,6 +4,7 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_eq
+from starkware.cairo.common.math import assert_not_zero
 from starkware.cairo.common.math_cmp import is_le, is_not_zero
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.starknet.common.syscalls import (
@@ -99,6 +100,10 @@ namespace StakingRewards:
     func balance_of{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         account : felt
     ) -> (balance : Uint256):
+        with_attr error_message("StakingRewards: invalid account"):
+            assert_not_zero(account)
+        end
+
         let (balance : Uint256) = StakingRewards_balances.read(account)
         return (balance)
     end
@@ -107,6 +112,10 @@ namespace StakingRewards:
         account : felt
     ) -> (reward_earned : Uint256):
         alloc_locals
+        with_attr error_message("StakingRewards: invalid account"):
+            assert_not_zero(account)
+        end
+
         let (account_balance : Uint256) = StakingRewards_balances.read(account)
         let (current_reward_per_token : Uint256) = reward_per_token()
         let (reward_per_token_paid : Uint256) = StakingRewards_reward_per_token_paid.read(account)
@@ -211,8 +220,9 @@ namespace StakingRewards:
     func stake{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(amount : Uint256):
         alloc_locals
         let (caller) = get_caller_address()
+        _verify_caller(caller)
         _update_reward(caller)
-        with_attr error_message("Cannot stake 0"):
+        with_attr error_message("StakingRewards: cannot stake 0"):
             let (is_zero) = uint256_eq(amount, Uint256(0, 0))
             assert is_zero = FALSE
         end
@@ -229,6 +239,69 @@ namespace StakingRewards:
         SafeERC20.safe_transfer_from(staking_token_address, caller, this_contract, amount)
 
         LogStake.emit(caller, amount)
+        return ()
+    end
+
+    func withdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        amount : Uint256
+    ):
+        alloc_locals
+        let (caller) = get_caller_address()
+        _verify_caller(caller)
+        _update_reward(caller)
+        with_attr error_message("StakingRewards: cannot withdraw 0"):
+            let (is_zero) = uint256_eq(amount, Uint256(0, 0))
+            assert is_zero = FALSE
+        end
+
+        let (current_total_supply : Uint256) = StakingRewards_total_supply.read()
+        let (new_total_supply : Uint256) = SafeUint256.sub_le(current_total_supply, amount)
+        let (current_balance : Uint256) = StakingRewards_balances.read(caller)
+        let (new_balance : Uint256) = SafeUint256.sub_le(current_balance, amount)
+        let (staking_token_address) = StakingRewards_staking_token.read()
+        let (this_contract) = get_contract_address()
+
+        StakingRewards_total_supply.write(new_total_supply)
+        StakingRewards_balances.write(caller, new_balance)
+        SafeERC20.safe_transfer_from(staking_token_address, this_contract, caller, amount)
+
+        LogWithdraw.emit(caller, amount)
+        return ()
+    end
+
+    func claim_rewards{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
+        alloc_locals
+        let (caller) = get_caller_address()
+        _verify_caller(caller)
+        _update_reward(caller)
+
+        let (pending_reward : Uint256) = earned(caller)
+        let (is_pending_reward_zero) = uint256_eq(pending_reward, Uint256(0, 0))
+
+        if is_pending_reward_zero == FALSE:
+            let (reward_token_address) = StakingRewards_reward_token.read()
+            let (this_contract) = get_contract_address()
+
+            StakingRewards_rewards.write(caller, Uint256(0, 0))
+            SafeERC20.safe_transfer_from(
+                reward_token_address, this_contract, caller, pending_reward
+            )
+
+            LogClaimReward.emit(caller, pending_reward)
+        end
+
+        return ()
+    end
+
+    func exit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
+        let (caller) = get_caller_address()
+        _verify_caller(caller)
+
+        let (user_balance : Uint256) = StakingRewards_balances.read(caller)
+        withdraw(user_balance)
+        claim_rewards()
+
+        return ()
     end
 
     #
@@ -241,13 +314,23 @@ namespace StakingRewards:
         let (is_valid_caller) = is_not_zero(caller)
 
         if is_valid_caller == TRUE:
-            let (reward_per_token_stored : Uint256) = StakingRewards_reward_per_token.read()
+            let (reward_per_token_latest : Uint256) = reward_per_token()
             let (last_update_time) = last_time_reward_applicable()
             let (account_reward_earned : Uint256) = earned(caller)
+            StakingRewards_reward_per_token.write(reward_per_token_latest)
+            StakingRewards_last_update_time.write(last_update_time)
             StakingRewards_rewards.write(caller, account_reward_earned)
-            StakingRewards_reward_per_token_paid(caller, reward_per_token_stored)
-            return ()
+            StakingRewards_reward_per_token_paid.write(caller, reward_per_token_latest)
         end
+
+        return ()
+    end
+
+    func _verify_caller(caller : felt):
+        with_attr error_message("StakingRewards: invalid caller"):
+            assert_not_zero(caller)
+        end
+
         return ()
     end
 end
