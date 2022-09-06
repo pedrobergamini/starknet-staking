@@ -40,6 +40,10 @@ func LogClaimReward(user : felt, reward : Uint256):
 end
 
 @event
+func LogSetRewardsDistribution(rewards_distribution : felt):
+end
+
+@event
 func LogSetRewardsDuration(duration : felt):
 end
 
@@ -242,6 +246,15 @@ namespace StakingRewards:
     # Mutative public functions
     #
 
+    func set_rewards_distribution{
+        syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
+    }(rewards_distribution : felt):
+        StakingRewards_rewards_distribution.write(rewards_distribution)
+        LogSetRewardsDistribution.emit(rewards_distribution)
+
+        return ()
+    end
+
     func set_rewards_duration{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         duration : felt
     ):
@@ -273,6 +286,8 @@ namespace StakingRewards:
 
         SafeERC20.safe_transfer_from(token, this_contract, receiver, amount)
         LogRecoverERC20.emit(token, amount)
+
+        return ()
     end
 
     func notify_reward_amount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
