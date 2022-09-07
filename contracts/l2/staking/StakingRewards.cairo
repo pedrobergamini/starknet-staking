@@ -8,9 +8,7 @@ from starkware.cairo.common.bool import TRUE
 from contracts.l2.openzeppelin.access.ownable.library import Ownable
 from contracts.l2.staking.library import StakingRewards
 
-//
-// Constructor
-//
+// @notice StakingRewards constructor
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     owner: felt, rewards_distribution: felt, reward_token: felt, staking_token: felt
@@ -24,6 +22,7 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 //
 // View functions
 //
+
 @view
 func balanceOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt) -> (
     balance: Uint256
@@ -133,7 +132,8 @@ func recoverERC20{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     token: felt, amount: Uint256
 ) {
     Ownable.assert_only_owner();
-    StakingRewards.recover_erc20();
+    let (owner) = Ownable.owner();
+    StakingRewards.recover_erc20(token, owner, amount);
 
     return ();
 }
