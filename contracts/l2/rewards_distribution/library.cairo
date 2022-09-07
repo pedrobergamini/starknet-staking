@@ -1,3 +1,3 @@
-# SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 
 %lang starknet

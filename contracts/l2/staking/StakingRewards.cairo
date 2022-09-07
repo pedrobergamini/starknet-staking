@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 
 %lang starknet
 
@@ -8,175 +8,175 @@ from starkware.cairo.common.bool import TRUE
 from contracts.l2.openzeppelin.access.ownable.library import Ownable
 from contracts.l2.staking.library import StakingRewards
 
-#
-# Constructor
-#
+//
+// Constructor
+//
 @constructor
-func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    owner : felt, rewards_distribution : felt, reward_token : felt, staking_token : felt
-):
-    Ownable.initializer(owner)
-    StakingRewards.initializer(rewards_distribution, reward_token, staking_token)
+func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    owner: felt, rewards_distribution: felt, reward_token: felt, staking_token: felt
+) {
+    Ownable.initializer(owner);
+    StakingRewards.initializer(rewards_distribution, reward_token, staking_token);
 
-    return ()
-end
+    return ();
+}
 
-#
-# View functions
-#
+//
+// View functions
+//
 @view
-func balanceOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    account : felt
-) -> (balance : Uint256):
-    let (balance : Uint256) = StakingRewards.balance_of(account)
+func balanceOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt) -> (
+    balance: Uint256
+) {
+    let (balance: Uint256) = StakingRewards.balance_of(account);
 
-    return (balance)
-end
-
-@view
-func earned{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(account : felt) -> (
-    reward : Uint256
-):
-    let (reward : Uint256) = StakingRewards.earned(account)
-
-    return (reward)
-end
+    return (balance,);
+}
 
 @view
-func getRewardForDuration{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-    reward : Uint256
-):
-    let (reward : Uint256) = StakingRewards.get_reward_for_duration()
+func earned{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt) -> (
+    reward: Uint256
+) {
+    let (reward: Uint256) = StakingRewards.earned(account);
 
-    return (reward)
-end
-
-@view
-func lastTimeRewardApplicable{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    ) -> (timestamp : felt):
-    let (timestamp) = StakingRewards.last_time_reward_applicable()
-
-    return (timestamp)
-end
+    return (reward,);
+}
 
 @view
-func rewardPerToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-    reward_per_token : Uint256
-):
-    let (reward_per_token : Uint256) = StakingRewards.reward_per_token()
+func getRewardForDuration{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    reward: Uint256
+) {
+    let (reward: Uint256) = StakingRewards.get_reward_for_duration();
 
-    return (reward_per_token)
-end
-
-@view
-func rewardsDistribution{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-    contract_address : felt
-):
-    let (rewards_distribution) = StakingRewards.rewards_distribution()
-
-    return (rewards_distribution)
-end
+    return (reward,);
+}
 
 @view
-func stakingToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-    token : felt
-):
-    let (staking_token) = StakingRewards.staking_token()
+func lastTimeRewardApplicable{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    ) -> (timestamp: felt) {
+    let (timestamp) = StakingRewards.last_time_reward_applicable();
 
-    return (staking_token)
-end
-
-@view
-func rewardToken{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-    token : felt
-):
-    let (reward_token) = StakingRewards.reward_token()
-
-    return (reward_token)
-end
+    return (timestamp,);
+}
 
 @view
-func totalSupply{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-    total_supply : Uint256
-):
-    let (total_supply : Uint256) = StakingRewards.total_supply()
+func rewardPerToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    reward_per_token: Uint256
+) {
+    let (reward_per_token: Uint256) = StakingRewards.reward_per_token();
 
-    return (total_supply)
-end
+    return (reward_per_token,);
+}
 
-#
-# External functions
-#
+@view
+func rewardsDistribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    contract_address: felt
+) {
+    let (rewards_distribution) = StakingRewards.rewards_distribution();
+
+    return (rewards_distribution,);
+}
+
+@view
+func stakingToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    token: felt
+) {
+    let (staking_token) = StakingRewards.staking_token();
+
+    return (staking_token,);
+}
+
+@view
+func rewardToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    token: felt
+) {
+    let (reward_token) = StakingRewards.reward_token();
+
+    return (reward_token,);
+}
+
+@view
+func totalSupply{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    total_supply: Uint256
+) {
+    let (total_supply: Uint256) = StakingRewards.total_supply();
+
+    return (total_supply,);
+}
+
+//
+// External functions
+//
 
 @external
-func setRewardsDuration{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    duration : felt
-):
-    Ownable.assert_only_owner()
-    StakingRewards.set_rewards_duration(duration)
+func setRewardsDuration{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    duration: felt
+) {
+    Ownable.assert_only_owner();
+    StakingRewards.set_rewards_duration(duration);
 
-    return ()
-end
-
-@external
-func setRewardsDistribution{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    rewards_distribution : felt
-):
-    Ownable.assert_only_owner()
-    StakingRewards.set_rewards_distribution(rewards_distribution)
-
-    return ()
-end
+    return ();
+}
 
 @external
-func recoverERC20{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    token : felt, amount : Uint256
-):
-    Ownable.assert_only_owner()
-    StakingRewards.recover_erc20()
+func setRewardsDistribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    rewards_distribution: felt
+) {
+    Ownable.assert_only_owner();
+    StakingRewards.set_rewards_distribution(rewards_distribution);
 
-    return ()
-end
-
-@external
-func notifyRewardAmount{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    reward : Uint256
-):
-    StakingRewards.notify_reward_amount(reward)
-
-    return ()
-end
+    return ();
+}
 
 @external
-func stake{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(amount : Uint256) -> (
-    success : felt
-):
-    StakingRewards.stake(amount)
+func recoverERC20{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    token: felt, amount: Uint256
+) {
+    Ownable.assert_only_owner();
+    StakingRewards.recover_erc20();
 
-    return (TRUE)
-end
-
-@external
-func withdraw{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    amount : Uint256
-) -> (success : felt):
-    StakingRewards.withdraw(amount)
-
-    return (TRUE)
-end
+    return ();
+}
 
 @external
-func claimReward{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-    success : felt
-):
-    StakingRewards.claim_rewards()
+func notifyRewardAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    reward: Uint256
+) {
+    StakingRewards.notify_reward_amount(reward);
 
-    return (TRUE)
-end
+    return ();
+}
 
 @external
-func exit{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (success : felt):
-    StakingRewards.exit()
+func stake{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(amount: Uint256) -> (
+    success: felt
+) {
+    StakingRewards.stake(amount);
 
-    return (TRUE)
-end
+    return (TRUE,);
+}
+
+@external
+func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(amount: Uint256) -> (
+    success: felt
+) {
+    StakingRewards.withdraw(amount);
+
+    return (TRUE,);
+}
+
+@external
+func claimReward{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    success: felt
+) {
+    StakingRewards.claim_rewards();
+
+    return (TRUE,);
+}
+
+@external
+func exit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (success: felt) {
+    StakingRewards.exit();
+
+    return (TRUE,);
+}
