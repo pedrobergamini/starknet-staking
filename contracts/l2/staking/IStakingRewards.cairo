@@ -45,10 +45,10 @@ namespace IStakingRewards:
     func setRewardsDistribution(rewards_distribution : felt):
     end
 
-    func notifyRewardAmount(reward : Uint256):
+    func recoverERC20(token : felt, amount : Uint256):
     end
 
-    func recoverERC20(token : felt, amount : Uint256):
+    func notifyRewardAmount(reward : Uint256):
     end
 
     func stake(amount : Uint256) -> (success : felt):

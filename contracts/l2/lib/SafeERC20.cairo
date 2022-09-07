@@ -12,8 +12,11 @@ namespace SafeERC20:
         token : felt, sender : felt, recipient : felt, amount : Uint256
     ):
         with_attr error_message("ERC20 transfer failed"):
-            let (success) = IERC20.transferFrom(contract_address=token, sender, recipient, amount)
+            let (success) = IERC20.transferFrom(
+                contract_address=token, sender=sender, recipient=recipient, amount=amount
+            )
             assert success = TRUE
         end
+        return ()
     end
 end

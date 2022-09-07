@@ -3,6 +3,7 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.registers import get_fp_and_pc
 from starkware.cairo.common.uint256 import Uint256, uint256_eq
 from starkware.cairo.common.math import assert_not_zero, assert_lt, assert_le, assert_not_equal
 from starkware.cairo.common.math_cmp import is_le, is_not_zero
@@ -12,9 +13,9 @@ from starkware.starknet.common.syscalls import (
     get_caller_address,
     get_contract_address,
 )
-from contracts.l2.lib.SafeERC20 import SafeERC20
 from contracts.l2.openzeppelin.security.safemath.library import SafeUint256
 from contracts.l2.openzeppelin.token.erc20.IERC20 import IERC20
+from contracts.l2.lib.SafeERC20 import SafeERC20
 
 #
 # Constants
@@ -108,6 +109,24 @@ end
 
 namespace StakingRewards:
     #
+    # Initializer
+    #
+    func initializer{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        rewards_distribution : felt, reward_token : felt, staking_token : felt
+    ):
+        with_attr error_message("StakingRewards: invalid initialization parameters"):
+            assert_not_zero(rewards_distribution)
+            assert_not_zero(reward_token)
+            assert_not_zero(staking_token)
+        end
+        StakingRewards_rewards_distribution.write(rewards_distribution)
+        StakingRewards_reward_token.write(reward_token)
+        StakingRewards_staking_token.write(staking_token)
+
+        return ()
+    end
+
+    #
     # Public functions
     #
 
@@ -141,12 +160,13 @@ namespace StakingRewards:
         let (reward_per_token_delta : Uint256) = SafeUint256.sub_lt(
             current_reward_per_token, reward_per_token_paid
         )
-        if reward_per_token_delta == 0:
+        let (is_delta_zero) = uint256_eq(reward_per_token_delta, Uint256(0, 0))
+        if is_delta_zero == TRUE:
             return (accumulated_rewards_stored)
         end
 
         let (accrued_rewards_normalized : Uint256, _) = SafeUint256.div_rem(
-            reward_per_token_delta, BASE_MULTIPLIER
+            reward_per_token_delta, Uint256(BASE_MULTIPLIER, 0)
         )
         let (total_rewards : Uint256) = SafeUint256.add(
             accrued_rewards_normalized, accumulated_rewards_stored
@@ -167,6 +187,7 @@ namespace StakingRewards:
     func last_time_reward_applicable{
         syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     }() -> (timestamp : felt):
+        alloc_locals
         let (block_timestamp) = get_block_timestamp()
         let (period_finish) = StakingRewards_period_finish.read()
         let (is_period_finished) = is_le(period_finish, block_timestamp)
@@ -199,7 +220,7 @@ namespace StakingRewards:
         )
         let (new_rewards_accumulated : Uint256) = SafeUint256.mul(time_delta, reward_rate)
         let (new_rewards_accumulated_denorm : Uint256) = SafeUint256.mul(
-            new_rewards_accumulated, BASE_MULTIPLIER
+            new_rewards_accumulated, Uint256(BASE_MULTIPLIER, 0)
         )
         let (new_rewards_accumulated_per_token : Uint256, _) = SafeUint256.div_rem(
             new_rewards_accumulated_denorm, total_supply
@@ -278,9 +299,9 @@ namespace StakingRewards:
     func recover_erc20{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         token : felt, receiver : felt, amount : Uint256
     ):
-        let (reward_token) = reward_token()
+        let (res) = reward_token()
         with_attr error_message("StakingRewards: Cannot recover staking token"):
-            assert_not_equal(reward_token, token)
+            assert_not_equal(res, token)
         end
         let (this_contract) = get_contract_address()
 
@@ -294,21 +315,40 @@ namespace StakingRewards:
         reward : Uint256
     ):
         alloc_locals
+
+        # let (__fp__, _) = get_fp_and_pc()
+        let (caller) = get_caller_address()
+        _verify_caller(caller)
+        let (rewards_distribution_address) = rewards_distribution()
+        with_attr error_message("StakingRewards: only rewards distribution allowed"):
+            assert caller = rewards_distribution_address
+        end
         _update_reward(0)
         let (block_timestamp) = get_block_timestamp()
         let (period_finish) = StakingRewards_period_finish.read()
         let (duration) = StakingRewards_rewards_duration.read()
         let (is_period_finished) = is_le(period_finish, block_timestamp)
-        local reward_rate : Uint256
+        let (reward_rate_stored) = StakingRewards_reward_rate.read()
+        local current_reward_rate : Uint256*
 
         if is_period_finished == TRUE:
             let (new_reward_rate : Uint256, _) = SafeUint256.div_rem(reward, Uint256(duration, 0))
             StakingRewards_reward_rate.write(new_reward_rate)
-            reward_rate = StakingRewards_reward_rate.read()
+            assert [current_reward_rate] = reward_rate_stored
+
+            local syscall_ptr : felt* = syscall_ptr
+            local pedersen_ptr : HashBuiltin* = pedersen_ptr
+            local range_check_ptr = range_check_ptr
         else:
-            let (remaining_time : Uint256) = SafeUint256.sub_le(period_finish, block_timestamp)
-            reward_rate = StakingRewards_reward_rate.read()
-            let (leftover : Uint256) = SafeUint256.mul(remaining_time, reward_rate)
+            let (remaining_time : Uint256) = SafeUint256.sub_le(
+                Uint256(period_finish, 0), Uint256(block_timestamp, 0)
+            )
+            assert [current_reward_rate] = reward_rate_stored
+            let (leftover : Uint256) = SafeUint256.mul(remaining_time, [current_reward_rate])
+
+            local syscall_ptr : felt* = syscall_ptr
+            local pedersen_ptr : HashBuiltin* = pedersen_ptr
+            local range_check_ptr = range_check_ptr
         end
 
         let (reward_token_address) = reward_token()
@@ -317,8 +357,10 @@ namespace StakingRewards:
             contract_address=reward_token_address, account=this_contract
         )
         with_attr error_message("StakingRewards: Provided reward too high"):
-            let (balance_reward_rate : Uint256, _) = SafeUint256.div_rem(balance, duration)
-            assert_le(reward_rate, balance_reward_rate)
+            let (balance_reward_rate : Uint256, _) = SafeUint256.div_rem(
+                balance, Uint256(duration, 0)
+            )
+            assert_uint256_le(current_reward_rate, balance_reward_rate)
         end
         let (new_period_finish) = SafeUint256.add(Uint256(block_timestamp, 0), Uint256(duration, 0))
 
@@ -439,7 +481,7 @@ namespace StakingRewards:
     end
 
     func _verify_caller(caller : felt):
-        with_attr error_message("StakingRewards: invalid caller"):
+        with_attr error_message("StakingRewards: caller is address 0"):
             assert_not_zero(caller)
         end
 
