@@ -15,6 +15,9 @@ namespace IRewardsDistribution {
     // View functions
     //
 
+    func authority() -> (authority_address: felt) {
+    }
+
     func distributions(index: felt) -> (distribution: Distribution) {
     }
 
@@ -28,9 +31,6 @@ namespace IRewardsDistribution {
     }
 
     func editRewardDistribution(index: felt, distribution: Distribution) -> (success: felt) {
-    }
-
-    func removeRewardDistribution(index: felt) -> (success: felt) {
     }
 
     func distributeRewards(amount: Uint256) -> (success: felt) {
