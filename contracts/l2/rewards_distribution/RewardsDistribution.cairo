@@ -24,7 +24,17 @@ func authority{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     authority_address: felt
 ) {
     let authority_address = RewardsDistribution.authority();
+
     return (authority_address,);
+}
+
+@view
+func rewardToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    reward_token_address: felt
+) {
+    let reward_token_address = RewardsDistribution.reward_token();
+
+    return (reward_token_address,);
 }
 
 @view

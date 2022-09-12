@@ -18,6 +18,9 @@ namespace IRewardsDistribution {
     func authority() -> (authority_address: felt) {
     }
 
+    func rewardToken() -> (reward_token_address: felt) {
+    }
+
     func distributions(index: felt) -> (distribution: Distribution) {
     }
 

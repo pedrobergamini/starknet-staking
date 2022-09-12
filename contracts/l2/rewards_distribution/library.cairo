@@ -30,6 +30,10 @@ func RewardsDistribution_authority() -> (authority_address: felt) {
 }
 
 @storage_var
+func RewardsDistribution_reward_token() -> (reward_token_address: felt) {
+}
+
+@storage_var
 func RewardsDistribution_distributions(index: felt) -> (distribution: Distribution) {
 }
 
@@ -60,6 +64,13 @@ namespace RewardsDistribution {
         let (authority_address) = RewardsDistribution_authority.read();
 
         return authority_address;
+    }
+
+    @external
+    func reward_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> felt {
+        let (reward_token_address) = RewardsDistribution_reward_token.read();
+
+        return reward_token_address;
     }
 
     func distributions{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
@@ -120,5 +131,10 @@ namespace RewardsDistribution {
         LogEditRewardDistribution.emit(index, new_distribution);
 
         return ();
+    }
+
+    func distribute_rewards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        amount: Uint256
+    ) {
     }
 }
