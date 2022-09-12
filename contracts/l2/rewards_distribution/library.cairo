@@ -4,8 +4,12 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero, assert_lt
-from starkware.cairo.common.uint256 import Uint256, assert_uint256_lt
+from starkware.cairo.common.uint256 import Uint256, assert_uint256_lt, assert_uint256_le
+from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
+from contracts.l2.openzeppelin.token.erc20.IERC20 import IERC20
 from contracts.l2.rewards_distribution.IRewardsDistribution import Distribution
+from contracts.l2.lib.SafeERC20 import SafeERC20
+from contracts.l2.staking.IStakingRewards import IStakingRewards
 
 //
 // Events
@@ -19,7 +23,7 @@ func LogEditRewardDistribution(index: felt, new_distribution: Distribution) {
 }
 
 @event
-func LogRemoveRewardDistribution(index: felt) {
+func LogDistributeRewards(amount: Uint256) {
 }
 
 //
@@ -76,7 +80,7 @@ namespace RewardsDistribution {
     func distributions{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         index: felt
     ) -> (distribution: Distribution) {
-        let (distribution) = RewardsDistribution_distributions.read(index);
+        let (distribution: Distribution) = RewardsDistribution_distributions.read(index);
 
         return (distribution,);
     }
@@ -136,5 +140,51 @@ namespace RewardsDistribution {
     func distribute_rewards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         amount: Uint256
     ) {
+        alloc_locals;
+        with_attr error_message("RewardsDistribution: amount should be greater than 0") {
+            assert_uint256_lt(Uint256(0, 0), amount);
+        }
+        let (caller) = get_caller_address();
+        let authority_address = authority();
+        with_attr error_message("RewardsDistribution: caller is not authorized") {
+            assert caller = authority_address;
+        }
+        let reward_token_address = reward_token();
+        with_attr error_message("RewardsDistribution: reward token not set") {
+            assert_not_zero(reward_token_address);
+        }
+        let (contract_address) = get_contract_address();
+        let (reward_token_balance: Uint256) = IERC20.balanceOf(
+            contract_address=reward_token_address, account=contract_address
+        );
+        with_attr error_message("RewardsDistribution: not enough tokens to distribute") {
+            assert_uint256_le(amount, reward_token_balance);
+        }
+
+        let res = distributions_len();
+        _loop_distribute_rewards(reward_token_address, res);
+        LogDistributeRewards.emit(amount);
+
+        return ();
+    }
+
+    //
+    // Internal functions
+    //
+
+    func _loop_distribute_rewards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        reward_token: felt, distributions_len: felt
+    ) {
+        if (distributions_len == 0) {
+            return ();
+        }
+
+        let (distribution: Distribution) = distributions((distributions_len - 1));
+        SafeERC20.safe_transfer(reward_token, distribution.destination, distribution.amount);
+        IStakingRewards.notifyRewardAmount(
+            contract_address=distribution.destination, reward=distribution.amount
+        );
+
+        return _loop_distribute_rewards(reward_token, (distributions_len - 1));
     }
 }

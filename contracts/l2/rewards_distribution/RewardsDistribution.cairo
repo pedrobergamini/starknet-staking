@@ -4,6 +4,7 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.bool import TRUE
+from starkware.cairo.common.uint256 import Uint256
 from contracts.l2.openzeppelin.access.ownable.library import Ownable
 from contracts.l2.rewards_distribution.library import RewardsDistribution
 from contracts.l2.rewards_distribution.IRewardsDistribution import Distribution
@@ -71,6 +72,15 @@ func editRewardDistribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, rang
 ) -> (success: felt) {
     Ownable.assert_only_owner();
     RewardsDistribution.edit_reward_distribution(index, new_distribution);
+
+    return (TRUE,);
+}
+
+@external
+func distributeRewards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    amount: Uint256
+) -> (success: felt) {
+    RewardsDistribution.distribute_rewards(amount);
 
     return (TRUE,);
 }
