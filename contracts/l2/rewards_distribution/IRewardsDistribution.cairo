@@ -24,13 +24,13 @@ namespace IRewardsDistribution {
     //
     // External functions
     //
-    func addRewardDistribution(distribution: Distribution) {
+    func addRewardDistribution(distribution: Distribution) -> (success: felt) {
     }
 
-    func editRewardDistribution(index: felt, distribution: Distribution) {
+    func editRewardDistribution(index: felt, distribution: Distribution) -> (success: felt) {
     }
 
-    func removeRewardDistribution(index: felt) {
+    func removeRewardDistribution(index: felt) -> (success: felt) {
     }
 
     func distributeRewards(amount: Uint256) -> (success: felt) {
