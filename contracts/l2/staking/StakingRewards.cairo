@@ -95,6 +95,15 @@ func rewardToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }
 
 @view
+func stakingBridgeL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    res: felt
+) {
+    let staking_bridge_l1_address = StakingRewards.staking_bridge_l1();
+
+    return (staking_bridge_l1_address,);
+}
+
+@view
 func totalSupply{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     total_supply: Uint256
 ) {

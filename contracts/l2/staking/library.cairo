@@ -7,13 +7,15 @@ from starkware.cairo.common.uint256 import Uint256, uint256_eq, assert_uint256_l
 from starkware.cairo.common.math import assert_not_zero, assert_lt, assert_le, assert_not_equal
 from starkware.cairo.common.math_cmp import is_le, is_not_zero
 from starkware.cairo.common.bool import TRUE, FALSE
+from starkware.cairo.common.alloc import alloc
 from starkware.starknet.common.syscalls import (
     get_block_timestamp,
     get_caller_address,
     get_contract_address,
 )
+from starkware.starknet.common.messages import send_message_to_l1
 from contracts.l2.openzeppelin.security.safemath.library import SafeUint256
-from contracts.l2.openzeppelin.token.erc20.IERC20 import IERC20
+from contracts.l2.lib.interfaces.IERC20 import IERC20
 from contracts.l2.lib.SafeERC20 import SafeERC20
 
 //
@@ -21,6 +23,7 @@ from contracts.l2.lib.SafeERC20 import SafeERC20
 //
 
 // @dev Base rewards calculation multiplier, used for divisions
+const CLAIM_REWARD_MESSAGE = 1;
 const BASE_MULTIPLIER = 10 ** 18;
 const MAX_UINT256_MEMBER = 2 ** 128 - 1;
 
@@ -36,7 +39,7 @@ func LogWithdraw(user: felt, amount: Uint256) {
 }
 
 @event
-func LogClaimReward(user: felt, reward: Uint256) {
+func LogClaimReward(user: felt, reward: Uint256, claimed_to_l1: felt) {
 }
 
 @event
@@ -64,6 +67,10 @@ func StakingRewards_reward_token() -> (token: felt) {
 
 @storage_var
 func StakingRewards_staking_token() -> (token: felt) {
+}
+
+@storage_var
+func StakingRewards_staking_bridge_l1() -> (res: felt) {
 }
 
 @storage_var
@@ -252,6 +259,13 @@ namespace StakingRewards {
         return (token,);
     }
 
+    func staking_bridge_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        ) -> felt {
+        let (res) = StakingRewards_staking_bridge_l1.read();
+
+        return res;
+    }
+
     func total_supply{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
         res: Uint256
     ) {
@@ -434,13 +448,40 @@ namespace StakingRewards {
             return ();
         }
         let (reward_token_address) = reward_token();
-        let (this_contract) = get_contract_address();
 
         StakingRewards_rewards.write(caller, Uint256(0, 0));
-        SafeERC20.safe_transfer_from(reward_token_address, this_contract, caller, pending_reward);
+        SafeERC20.safe_transfer(reward_token_address, caller, pending_reward);
 
-        LogClaimReward.emit(caller, pending_reward);
+        LogClaimReward.emit(caller, pending_reward, FALSE);
         return ();
+    }
+
+    func claim_rewards_to_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+        alloc_locals;
+        let (caller) = get_caller_address();
+        _verify_caller(caller);
+        _update_reward(caller);
+
+        let (pending_reward: Uint256) = earned(caller);
+        let (is_pending_reward_zero) = uint256_eq(pending_reward, Uint256(0, 0));
+
+        if (is_pending_reward_zero == TRUE) {
+            return ();
+        }
+        let (reward_token_address) = reward_token();
+
+        StakingRewards_rewards.write(caller, Uint256(0, 0));
+        let (reward_token_address) = reward_token();
+        IERC20.burn(contract_address=reward_token_address, amount=pending_reward);
+
+        let staking_bridge_l1_address = staking_bridge_l1();
+        let (message_payload: felt*) = alloc();
+        assert message_payload[0] = CLAIM_REWARD_MESSAGE;
+        assert message_payload[1] = caller;
+        assert message_payload[2] = pending_reward;
+        send_message_to_l1(to_contract=staking_bridge_l1_address, payload_size=3, message_payload);
+
+        LogClaimReward.emit(caller, pending_reward, TRUE);
     }
 
     func exit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {

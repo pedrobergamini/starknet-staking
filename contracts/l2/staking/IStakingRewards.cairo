@@ -33,6 +33,9 @@ namespace IStakingRewards {
     func rewardToken() -> (token: felt) {
     }
 
+    func stakingBridgeL1() -> (res: felt) {
+    }
+
     func totalSupply() -> (total_supply: Uint256) {
     }
 
