@@ -1,49 +1,65 @@
-# SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 
 %lang starknet
 
+from starkware.cairo.common.uint256 import Uint256
+
 @contract_interface
-namespace IStakingRewards:
-    #
-    # View functions
-    #
-    func balanceOf(account : felt) -> (balance : felt):
-    end
+namespace IStakingRewards {
+    //
+    // View functions
+    //
+    func balanceOf(account: felt) -> (balance: Uint256) {
+    }
 
-    func earned(account : felt) -> (reward : felt):
-    end
+    func earned(account: felt) -> (reward: Uint256) {
+    }
 
-    func getRewardForDuration() -> (reward : felt):
-    end
+    func getRewardForDuration() -> (reward: Uint256) {
+    }
 
-    func lastTimeRewardApplicable() -> (timestamp : felt):
-    end
+    func lastTimeRewardApplicable() -> (timestamp: felt) {
+    }
 
-    func rewardPerToken() -> (reward_per_token : felt):
-    end
+    func rewardPerToken() -> (reward_per_token: Uint256) {
+    }
 
-    func rewardsDistribution() -> (contract_address : felt):
-    end
+    func rewardsDistribution() -> (contract_address: felt) {
+    }
 
-    func rewardToken() -> (token : felt):
-    end
+    func stakingToken() -> (token: felt) {
+    }
 
-    func totalSupply() -> (total_supply : felt):
-    end
+    func rewardToken() -> (token: felt) {
+    }
 
-    #
-    # External functions
-    #
+    func totalSupply() -> (total_supply: Uint256) {
+    }
 
-    func exit() -> (success : felt):
-    end
+    //
+    // External functions
+    //
+    func setRewardsDuration(duration: felt) {
+    }
 
-    func claimReward() -> (success : felt):
-    end
+    func setRewardsDistribution(rewards_distribution: felt) {
+    }
 
-    func stake(amount : felt) -> (success : felt):
-    end
+    func recoverERC20(token: felt, amount: Uint256) {
+    }
 
-    func withdraw(amount : felt) -> (success : felt):
-    end
-end
+    func notifyRewardAmount(reward: Uint256) {
+    }
+
+    func stake(amount: Uint256) -> (success: felt) {
+    }
+
+    func withdraw(amount: Uint256) -> (success: felt) {
+    }
+
+    func claimReward() -> (success: felt) {
+    }
+
+    func exit() -> (success: felt) {
+    }
+}
