@@ -68,30 +68,21 @@ func rewardPerToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_
 }
 
 @view
-func rewardsDistribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
-    contract_address: felt
+func rewardToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    token: felt
 ) {
-    let (rewards_distribution) = StakingRewards.rewards_distribution();
+    let reward_token = StakingRewards.reward_token();
 
-    return (rewards_distribution,);
+    return (reward_token,);
 }
 
 @view
 func stakingToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     token: felt
 ) {
-    let (staking_token) = StakingRewards.staking_token();
+    let staking_token = StakingRewards.staking_token();
 
     return (staking_token,);
-}
-
-@view
-func rewardToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
-    token: felt
-) {
-    let (reward_token) = StakingRewards.reward_token();
-
-    return (reward_token,);
 }
 
 @view
@@ -101,6 +92,15 @@ func stakingBridgeL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     let staking_bridge_l1_address = StakingRewards.staking_bridge_l1();
 
     return (staking_bridge_l1_address,);
+}
+
+@view
+func rewardsDistribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    contract_address: felt
+) {
+    let rewards_distribution = StakingRewards.rewards_distribution();
+
+    return (rewards_distribution,);
 }
 
 @view
@@ -157,21 +157,39 @@ func notifyRewardAmount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
 }
 
 @external
-func stake{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(amount: Uint256) -> (
+func stakeL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(amount: Uint256) -> (
     success: felt
 ) {
-    StakingRewards.stake(amount);
+    StakingRewards.stake_l2(amount);
 
     return (TRUE,);
 }
 
-@external
-func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(amount: Uint256) -> (
-    success: felt
+@l1_handler
+func stakeL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    from_address: felt, l1_user: felt, amount: Uint256
 ) {
-    StakingRewards.withdraw(amount);
+    StakingRewards.stake_l1(from_address, l1_user, amount);
+
+    return ();
+}
+
+@external
+func withdrawL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    amount: Uint256
+) -> (success: felt) {
+    StakingRewards.withdraw_l2(amount);
 
     return (TRUE,);
+}
+
+@l1_handler
+func withdrawL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    from_address: felt, l1_user: felt, amount: Uint256
+) {
+    StakingRewards.withdraw_l1(from_address, l1_user, amount);
+
+    return ();
 }
 
 @external
@@ -184,8 +202,26 @@ func claimReward{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 }
 
 @external
-func exit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (success: felt) {
-    StakingRewards.exit();
+func claimRewardToL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    success: felt
+) {
+    StakingRewards.claim_reward_to_l1();
 
     return (TRUE,);
+}
+
+@external
+func exitL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (success: felt) {
+    StakingRewards.exit_l2();
+
+    return (TRUE,);
+}
+
+@l1_handler
+func exitL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    from_address: felt, l1_user: felt
+) {
+    StakingRewards.exit_l1(from_address, l1_user);
+
+    return ();
 }

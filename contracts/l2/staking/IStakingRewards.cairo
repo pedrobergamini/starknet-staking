@@ -54,15 +54,27 @@ namespace IStakingRewards {
     func notifyRewardAmount(reward: Uint256) {
     }
 
-    func stake(amount: Uint256) -> (success: felt) {
+    func stakeL2(amount: Uint256) -> (success: felt) {
     }
 
-    func withdraw(amount: Uint256) -> (success: felt) {
+    func stakeL1(from_address: felt, l1_user: felt, amount: Uint256) {
+    }
+
+    func withdrawL2(amount: Uint256) -> (success: felt) {
+    }
+
+    func withdrawL1(from_address: felt, l1_user: felt, amount: Uint256) {
     }
 
     func claimReward() -> (success: felt) {
     }
 
-    func exit() -> (success: felt) {
+    func claimRewardToL1() -> (success: felt) {
+    }
+
+    func exitL2() -> (success: felt) {
+    }
+
+    func exitL1(from_address: felt, l1_user: felt) {
     }
 }
