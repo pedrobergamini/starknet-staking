@@ -24,6 +24,9 @@ contract StakingBridge {
     uint256 public constant WITHDRAW_MESSAGE = 1;
     /// @dev Starknet contract claim reward message
     uint256 public constant CLAIM_REWARD_MESSAGE = 2;
+    /// @dev Starknet Messaging
+    /// `bytes4(keccak256(consumeMessageFromL2(uint256,uint256[])))` selector
+    uint256 internal constant CONSUME_MESSAGE_SELECTOR = 0xcd26351a;
 
     event LogStake(address user, uint256 amount);
     event LogWithdraw(address user, uint256 amount);
@@ -88,12 +91,20 @@ contract StakingBridge {
     /// @param _message L2 message id
     /// @param _amount amount of tokens to withdraw/claim
     function _consumeMessage(uint256 _message, uint256 _amount) internal {
-        uint256[] memory payload = new uint256[](4);
-        payload[0] = _message;
-        payload[1] = uint256(uint160(msg.sender));
-        payload[2] = _amount & (1 << (128 - 1));
-        payload[3] = _amount >> 128;
+        // solhint-disable no-inline-assembly
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr, 0xcd26351a)
+            mstore(add(ptr, 0x20), _message)
+            mstore(add(ptr, 0x40), caller())
+            mstore(add(ptr, 0x60), and(_amount, shl(0x01, sub(0x80, 0x01))))
+            mstore(add(ptr, 0x80), shr(_amount, 0x80))
+            let callStatus := call(gas(), sload(0x03), 0x00, ptr, 0xa0, ptr, 0x20)
+            let success := and(callStatus, gt(returndatasize(), 31))
 
-        starknet.consumeMessageFromL2(staking, payload);
+            if not(success) {
+                revert(ptr, returndatasize())
+            }
+        }
     }
 }
