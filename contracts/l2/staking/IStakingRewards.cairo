@@ -63,7 +63,7 @@ namespace IStakingRewards {
     func withdrawL2(amount: Uint256) -> (success: felt) {
     }
 
-    func withdrawL1(from_address: felt, l1_user: felt, amount: Uint256) {
+    func withdrawL1(l1_user: felt, amount: Uint256) {
     }
 
     func claimReward() -> (success: felt) {
@@ -75,6 +75,6 @@ namespace IStakingRewards {
     func exitL2() -> (success: felt) {
     }
 
-    func exitL1(from_address: felt, l1_user: felt) {
+    func exitL1(l1_user: felt) {
     }
 }

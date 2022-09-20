@@ -183,11 +183,9 @@ func withdrawL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
     return (TRUE,);
 }
 
-@l1_handler
-func withdrawL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    from_address: felt, l1_user: felt, amount: Uint256
-) {
-    StakingRewards.withdraw_l1(from_address, l1_user, amount);
+@external
+func withdrawL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(amount: Uint256) {
+    StakingRewards.withdraw_l1(amount);
 
     return ();
 }
@@ -217,11 +215,9 @@ func exitL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -
     return (TRUE,);
 }
 
-@l1_handler
-func exitL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    from_address: felt, l1_user: felt
-) {
-    StakingRewards.exit_l1(from_address, l1_user);
+@external
+func exitL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    StakingRewards.exit_l1();
 
     return ();
 }

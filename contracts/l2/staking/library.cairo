@@ -24,6 +24,7 @@ from contracts.l2.lib.SafeERC20 import SafeERC20
 
 // @dev Base rewards calculation multiplier, used for divisions
 const CLAIM_REWARD_MESSAGE = 1;
+const WITHDRAW_L1_MESSAGE = 2;
 const BASE_MULTIPLIER = 10 ** 18;
 const MAX_UINT256_MEMBER = 2 ** 128 - 1;
 
@@ -40,10 +41,6 @@ func LogWithdraw(user: felt, amount: Uint256, withdrawn_to_l1: felt) {
 
 @event
 func LogClaimReward(user: felt, reward: Uint256, claimed_to_l1: felt) {
-}
-
-@event
-func LogExit(user: felt, exited_to_l1: felt) {
 }
 
 @event
@@ -404,10 +401,13 @@ namespace StakingRewards {
     }
 
     func stake_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        from_address, l1_user: felt, amount: Uint256
+        from_address: felt, l1_user: felt, amount: Uint256
     ) {
         _assert_only_staking_bridge(from_address);
         _stake(l1_user, amount);
+        let staking_token_address = staking_token();
+        let (this_contract) = get_contract_address();
+        IERC20.mint(contract_address=staking_token_address, to=this_contract, amount=amount);
         StakingRewards_l1_users.write(l1_user, TRUE);
         LogStake.emit(l1_user, amount, TRUE);
 
@@ -430,14 +430,25 @@ namespace StakingRewards {
     }
 
     func withdraw_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        from_address: felt, l1_user: felt, amount: Uint256
+        amount: Uint256
     ) {
-        _assert_only_staking_bridge(from_address);
+        alloc_locals;
+        let (caller) = get_caller_address();
+        _verify_caller(caller);
 
-        _withdraw(l1_user, amount);
+        _withdraw(caller, amount);
         let staking_token_address = staking_token();
         IERC20.burn(contract_address=staking_token_address, amount=amount);
-        LogWithdraw.emit(l1_user, amount, TRUE);
+        let (message_payload: felt*) = alloc();
+        let staking_bridge_l1_address = staking_bridge_l1();
+        assert message_payload[0] = WITHDRAW_L1_MESSAGE;
+        assert message_payload[1] = caller;
+        assert message_payload[2] = amount.low;
+        assert message_payload[3] = amount.high;
+        send_message_to_l1(
+            to_address=staking_bridge_l1_address, payload_size=4, payload=message_payload
+        );
+        LogWithdraw.emit(caller, amount, TRUE);
 
         return ();
     }
@@ -498,26 +509,20 @@ namespace StakingRewards {
         return ();
     }
 
-    func exit_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        from_address: felt, l1_user: felt
-    ) {
-        let (user_balance: Uint256) = StakingRewards_balances.read(l1_user);
-        withdraw_l1(from_address, l1_user, user_balance);
+    func exit_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+        let (caller) = get_caller_address();
+        let (user_balance: Uint256) = StakingRewards_balances.read(caller);
+        withdraw_l1(user_balance);
         claim_reward_to_l1();
-        LogExit.emit(l1_user, TRUE);
 
         return ();
     }
 
     func exit_l2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
-        alloc_locals;
         let (caller) = get_caller_address();
-        _verify_caller(caller);
-
         let (user_balance: Uint256) = StakingRewards_balances.read(caller);
         withdraw_l2(user_balance);
         claim_rewards();
-        LogExit.emit(caller, FALSE);
 
         return ();
     }

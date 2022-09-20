@@ -36,4 +36,7 @@ namespace IERC20 {
 
     func burn(amount: Uint256) {
     }
+
+    func mint(to: felt, amount: Uint256) {
+    }
 }
