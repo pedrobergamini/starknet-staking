@@ -65,11 +65,11 @@
     "ethers",
     "ethereum",
     "hardhat",
+    "starknet",
+    "cairo",
     "smart-contracts",
     "solidity",
-    "template",
-    "typescript",
-    "typechain"
+    "typescript"
   ],
   "packageManager": "yarn@3.2.1",
   "publishConfig": {
@@ -78,6 +78,7 @@
   "scripts": {
     "clean": "shx rm -rf ./artifacts ./cache ./coverage ./src/types ./coverage.json && yarn typechain",
     "commit": "git-cz",
+    "compile": "yarn compile:l1 && yarn compile:l2",
     "compile:l1": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
     "compile:l2": "hardhat starknet-compile",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"test/**/*.ts\" && yarn typechain",

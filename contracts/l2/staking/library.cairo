@@ -23,8 +23,8 @@ from contracts.l2.lib.SafeERC20 import SafeERC20
 //
 
 // @dev Base rewards calculation multiplier, used for divisions
-const CLAIM_REWARD_MESSAGE = 1;
-const WITHDRAW_L1_MESSAGE = 2;
+const WITHDRAW_MESSAGE = 1;
+const CLAIM_REWARD_MESSAGE = 2;
 const BASE_MULTIPLIER = 10 ** 18;
 const MAX_UINT256_MEMBER = 2 ** 128 - 1;
 
@@ -441,7 +441,7 @@ namespace StakingRewards {
         IERC20.burn(contract_address=staking_token_address, amount=amount);
         let (message_payload: felt*) = alloc();
         let staking_bridge_l1_address = staking_bridge_l1();
-        assert message_payload[0] = WITHDRAW_L1_MESSAGE;
+        assert message_payload[0] = WITHDRAW_MESSAGE;
         assert message_payload[1] = caller;
         assert message_payload[2] = amount.low;
         assert message_payload[3] = amount.high;
