@@ -6,7 +6,7 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero, assert_lt
 from starkware.cairo.common.uint256 import Uint256, assert_uint256_lt, assert_uint256_le
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
-from contracts.l2.openzeppelin.token.erc20.IERC20 import IERC20
+from contracts.l2.lib.interfaces.IERC20 import IERC20
 from contracts.l2.rewards_distribution.IRewardsDistribution import Distribution
 from contracts.l2.lib.SafeERC20 import SafeERC20
 from contracts.l2.staking.IStakingRewards import IStakingRewards
