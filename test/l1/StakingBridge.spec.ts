@@ -1,8 +1,7 @@
-import { expect } from "chai";
+// import { expect } from "chai";
 import { ethers, starknet } from "hardhat";
 
 import config from "../../hardhat.config";
-import { L1Signers, L2Signers } from "../types";
 
 const {
   utils: { parseEther },
@@ -26,7 +25,6 @@ async function main(): Promise<void> {
       alice: l2Alice,
       bob: l2Bob,
     };
-    this.l2Signers = {} as L2Signers;
     this.StakingBridge = await ethers.getContractFactory("StakingBridge");
     this.L1ERC20 = await ethers.getContractFactory("ERC20Mock");
     this.L2ERC20 = await starknet.getContractFactory("contracts/l2/openzeppelin/token/erc20/presets/ERC20");
