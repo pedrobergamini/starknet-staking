@@ -5,13 +5,14 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.bool import TRUE
+from starkware.starknet.common.syscalls import get_caller_address
 from contracts.l2.openzeppelin.access.ownable.library import Ownable
 from contracts.l2.staking.library import StakingRewards
 
 // @notice StakingRewards constructor
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    owner: felt, rewards_distribution: felt, reward_token: felt, staking_token: felt
+    rewards_distribution: felt, reward_token: felt, staking_token: felt, owner: felt
 ) {
     Ownable.initializer(owner);
     StakingRewards.initializer(rewards_distribution, reward_token, staking_token);

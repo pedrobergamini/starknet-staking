@@ -12,7 +12,7 @@ from contracts.l2.rewards_distribution.IRewardsDistribution import Distribution
 // @notice RewardsDistribution constructor
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    owner: felt, authority: felt
+    authority: felt, owner: felt
 ) {
     Ownable.initializer(owner);
     RewardsDistribution.initializer(authority);
