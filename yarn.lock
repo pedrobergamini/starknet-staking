@@ -1582,9 +1582,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@shardlabs/starknet-hardhat-plugin@npm:^0.6.6-alpha.0":
-  version: 0.6.6-alpha.2
-  resolution: "@shardlabs/starknet-hardhat-plugin@npm:0.6.6-alpha.2"
+"@shardlabs/starknet-hardhat-plugin@npm:0.6.6-alpha.3":
+  version: 0.6.6-alpha.3
+  resolution: "@shardlabs/starknet-hardhat-plugin@npm:0.6.6-alpha.3"
   dependencies:
     "@nomiclabs/hardhat-docker": ^2.0.2
     axios: ^0.24.0
@@ -1595,7 +1595,7 @@ __metadata:
     starknet: ^3.15.0
   peerDependencies:
     hardhat: ^2.9.5
-  checksum: 8945f4de186e3f030dc8400f4b523b74f2e20a593b856857f2dbd77e4e7cd08342c519a70b101a12fa68c2a242abe233d7d13dcc8fd6ebabe4852419eaf005b4
+  checksum: c0e8c319172f5c056497fd4e29b54d9a5aefb9581677fcf4f6645325658f70e7866a8e440762c74f27e3263223b97e1010c7c423ccb61048890a6187e9e0585a
   languageName: node
   linkType: hard
 
@@ -10561,7 +10561,7 @@ __metadata:
     "@nomiclabs/hardhat-ethers": ^2.1.0
     "@nomiclabs/hardhat-etherscan": ^3.1.0
     "@openzeppelin/contracts": ^4.7.3
-    "@shardlabs/starknet-hardhat-plugin": ^0.6.6-alpha.0
+    "@shardlabs/starknet-hardhat-plugin": 0.6.6-alpha.3
     "@trivago/prettier-plugin-sort-imports": ^3.3.0
     "@typechain/ethers-v5": ^10.1.0
     "@typechain/hardhat": ^6.1.2

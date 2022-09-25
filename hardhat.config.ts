@@ -22,15 +22,9 @@ if (!infuraApiKey) {
 }
 
 const chainIds = {
-  "arbitrum-mainnet": 42161,
-  avalanche: 43114,
-  bsc: 56,
   goerli: 5,
   hardhat: 31337,
   mainnet: 1,
-  "optimism-mainnet": 10,
-  "polygon-mainnet": 137,
-  "polygon-mumbai": 80001,
 };
 
 function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
@@ -68,15 +62,11 @@ const config: HardhatUserConfig = {
     //   },
     //   chainId: chainIds.hardhat,
     // },
-    devnet: {
-      url: "http://127.0.0.1:5050",
-    },
-    l1_testnet: {
-      url: "http://127.0.0.1:8545",
-      // accounts: {
-      //   mnemonic,
-      // },
-      chainId: 1337,
+    // l1_testnet: {
+    //   url: "http://localhost:8545",
+    // },
+    l2_testnet: {
+      url: "http://localhost:5050",
     },
     goerli: getChainConfig("goerli"),
     mainnet: getChainConfig("mainnet"),
@@ -111,7 +101,7 @@ const config: HardhatUserConfig = {
   starknet: {
     // uses current activated venv or global installation
     venv: "active",
-    network: "devnet",
+    network: "l2_testnet",
   },
 };
 
