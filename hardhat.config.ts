@@ -24,6 +24,7 @@ if (!infuraApiKey) {
 const chainIds = {
   goerli: 5,
   hardhat: 31337,
+  ganache: 1337,
   mainnet: 1,
 };
 
@@ -62,11 +63,12 @@ const config: HardhatUserConfig = {
     //   },
     //   chainId: chainIds.hardhat,
     // },
-    // l1_testnet: {
-    //   url: "http://localhost:8545",
-    // },
+    l1_testnet: {
+      url: "http://127.0.0.1:8545",
+      chainId: chainIds.ganache,
+    },
     l2_testnet: {
-      url: "http://localhost:5050",
+      url: "http://127.0.0.1:5050",
     },
     goerli: getChainConfig("goerli"),
     mainnet: getChainConfig("mainnet"),

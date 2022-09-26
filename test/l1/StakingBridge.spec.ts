@@ -7,7 +7,7 @@ const {
 const ONE_MILLION = 1000000;
 const DEFAULT_TIMEOUT = 30000;
 const TOKEN_UNIT = BigInt(10 ** 18);
-const networkUrl = "http://localhost:8545";
+const networkUrl = "http://127.0.0.1:8545";
 
 describe("StakingBridge", async function () {
   this.timeout(DEFAULT_TIMEOUT);
@@ -64,5 +64,9 @@ describe("StakingBridge", async function () {
       this.rewardToken.address,
       BigInt(this.stakingRewards.address),
     );
+  });
+  it("should work", async function () {
+    const x = await starknet.devnet.loadL1MessagingContract(networkUrl);
+    console.log("hi");
   });
 });
