@@ -6,7 +6,9 @@ import {
   DEFAULT_TIMEOUT,
   MAX_UINT256_ETHERS,
   MAX_UINT256_STARKNET,
+  ONE_DAY,
   ONE_MILLION,
+  SEVEN_DAYS,
   fromUint256,
   toUint256,
 } from "../utils";
@@ -52,24 +54,21 @@ describe("StakingRewards", async function () {
       name: starknet.shortStringToBigInt("Staking Token"),
       symbol: starknet.shortStringToBigInt("STK"),
       decimals: BigInt(18),
-      initial_supply: toUint256(parseEther(ONE_MILLION)),
+      initial_supply: toUint256(parseEther(ONE_MILLION).mul(100)),
       recipient: BigInt(this.l2Signers.admin.address),
     });
     this.l2RewardToken = await this.L2ERC20.deploy({
       name: starknet.shortStringToBigInt("Reward Token"),
       symbol: starknet.shortStringToBigInt("RWD"),
       decimals: BigInt(18),
-      initial_supply: toUint256(parseEther(ONE_MILLION)),
+      initial_supply: toUint256(parseEther(ONE_MILLION).mul(100)),
       recipient: BigInt(this.l2Signers.admin.address),
     });
-    this.rewardsDistribution = await this.RewardsDistribution.deploy({
-      authority: BigInt(this.l2Signers.admin.address),
-      owner: BigInt(this.l2Signers.admin.address),
-    });
     this.stakingRewards = await this.StakingRewards.deploy({
-      rewards_distribution: this.rewardsDistribution.address,
+      rewards_distribution: BigInt(this.l2Signers.admin.starknetContract.address),
       reward_token: BigInt(this.l2RewardToken.address),
       staking_token: BigInt(this.l2StakingToken.address),
+      initial_rewards_duration: BigInt(SEVEN_DAYS),
       owner: BigInt(this.l2Signers.admin.address),
     });
     this.stakingBridge = await this.StakingBridge.deploy(
@@ -83,20 +82,80 @@ describe("StakingRewards", async function () {
       recipient: BigInt(this.l2Signers.alice.starknetContract.address),
       amount: toUint256(parseEther(ONE_MILLION)),
     });
-  });
-  it("should update the user balance", async function () {
+    await this.l2Signers.admin.invoke(this.l2StakingToken, "transfer", {
+      recipient: BigInt(this.l2Signers.bob.starknetContract.address),
+      amount: toUint256(parseEther(ONE_MILLION)),
+    });
+    await this.l2Signers.admin.invoke(this.l2StakingToken, "approve", {
+      spender: BigInt(this.stakingRewards.address),
+      amount: MAX_UINT256_STARKNET,
+    });
     await this.l2Signers.alice.invoke(this.l2StakingToken, "approve", {
       spender: BigInt(this.stakingRewards.address),
       amount: MAX_UINT256_STARKNET,
     });
+    await this.l2Signers.bob.invoke(this.l2StakingToken, "approve", {
+      spender: BigInt(this.stakingRewards.address),
+      amount: MAX_UINT256_STARKNET,
+    });
+  });
+  it("should update the user balance", async function () {
+    // stake 100 tokens
     const amountToStake = parseEther("100");
     await this.l2Signers.alice.invoke(this.stakingRewards, "stakeL2", {
       amount: toUint256(amountToStake),
     });
+    // balance must increase by 100
     const { balance } = await this.stakingRewards.call("balanceOf", {
       account: BigInt(this.l2Signers.alice.address),
     });
 
     expect(fromUint256(balance)).to.be.equal(amountToStake);
+  });
+  it("should update rewards correctly", async function () {
+    // allocate 1 million tokens for rewards
+    await this.l2Signers.admin.invoke(this.l2RewardToken, "transfer", {
+      recipient: BigInt(this.stakingRewards.address),
+      amount: toUint256(parseEther(ONE_MILLION)),
+    });
+    await this.l2Signers.admin.invoke(this.stakingRewards, "notifyRewardAmount", {
+      reward: toUint256(parseEther(ONE_MILLION)),
+    });
+
+    const amountToStake = parseEther("50");
+    // users stake
+    await this.l2Signers.alice.invoke(this.stakingRewards, "stakeL2", {
+      amount: toUint256(amountToStake),
+    });
+    await this.l2Signers.bob.invoke(this.stakingRewards, "stakeL2", {
+      amount: toUint256(amountToStake),
+    });
+    // increase 7 days
+    const x = await this.stakingRewards.call("getRewardForDuration");
+    console.log(x);
+    await starknet.devnet.increaseTime(SEVEN_DAYS);
+    const y = await this.stakingRewards.call("rewardPerToken");
+    console.log(y);
+    await this.l2Signers.bob.invoke(this.stakingRewards, "stakeL2", {
+      amount: toUint256(ethers.BigNumber.from(1)),
+    });
+    const z = await this.stakingRewards.call("rewardPerToken");
+    console.log(z);
+    // await starknet.devnet.createBlock();
+
+    const { reward: aliceReward } = await this.stakingRewards.call("earned", {
+      account: BigInt(this.l2Signers.alice.address),
+    });
+    const { reward: bobReward } = await this.stakingRewards.call("earned", {
+      account: BigInt(this.l2Signers.bob.address),
+    });
+    // each must receive half of rewards for the period
+    const expectedRewardsForEach = parseEther(ONE_MILLION).div(2);
+
+    console.log(aliceReward, fromUint256(aliceReward));
+    console.log(bobReward, fromUint256(bobReward));
+
+    // expect(fromUint256(aliceReward)).to.be.equal(expectedRewardsForEach);
+    // expect(fromUint256(bobReward)).to.be.equal(expectedRewardsForEach);
   });
 });

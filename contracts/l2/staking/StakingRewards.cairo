@@ -12,10 +12,16 @@ from contracts.l2.staking.library import StakingRewards
 // @notice StakingRewards constructor
 @constructor
 func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    rewards_distribution: felt, reward_token: felt, staking_token: felt, owner: felt
+    rewards_distribution: felt,
+    reward_token: felt,
+    staking_token: felt,
+    initial_rewards_duration: felt,
+    owner: felt,
 ) {
     Ownable.initializer(owner);
-    StakingRewards.initializer(rewards_distribution, reward_token, staking_token);
+    StakingRewards.initializer(
+        rewards_distribution, reward_token, staking_token, initial_rewards_duration
+    );
 
     return ();
 }
@@ -84,6 +90,33 @@ func stakingToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     let staking_token = StakingRewards.staking_token();
 
     return (staking_token,);
+}
+
+@view
+func periodFinish{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    period_finish: felt
+) {
+    let period_finish = StakingRewards.period_finish();
+
+    return (period_finish,);
+}
+
+@view
+func rewardRate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    reward_rate: Uint256
+) {
+    let (reward_rate) = StakingRewards.reward_rate();
+
+    return (reward_rate,);
+}
+
+@view
+func rewardsDuration{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+    rewards_duration: felt
+) {
+    let rewards_duration = StakingRewards.rewards_duration();
+
+    return (rewards_duration,);
 }
 
 @view

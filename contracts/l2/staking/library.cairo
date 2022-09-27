@@ -3,6 +3,7 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.registers import get_fp_and_pc
 from starkware.cairo.common.uint256 import Uint256, uint256_eq, assert_uint256_le, assert_uint256_lt
 from starkware.cairo.common.math import assert_not_zero, assert_lt, assert_le, assert_not_equal
 from starkware.cairo.common.math_cmp import is_le, is_not_zero
@@ -95,7 +96,7 @@ func StakingRewards_rewards_duration() -> (duration: felt) {
 }
 
 @storage_var
-func StakingRewards_period_finish() -> (when: felt) {
+func StakingRewards_period_finish() -> (period_finish: felt) {
 }
 
 @storage_var
@@ -121,16 +122,21 @@ func StakingRewards_l1_users(user: felt) -> (is_l1_user: felt) {
 namespace StakingRewards {
     // @notice StakingRewards initializer
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        rewards_distribution: felt, reward_token: felt, staking_token: felt
+        rewards_distribution: felt,
+        reward_token: felt,
+        staking_token: felt,
+        initial_rewards_duration: felt,
     ) {
         with_attr error_message("StakingRewards: invalid initialization parameters") {
             assert_not_zero(rewards_distribution);
             assert_not_zero(reward_token);
             assert_not_zero(staking_token);
+            assert_not_zero(initial_rewards_duration);
         }
         StakingRewards_rewards_distribution.write(rewards_distribution);
         StakingRewards_reward_token.write(reward_token);
         StakingRewards_staking_token.write(staking_token);
+        StakingRewards_rewards_duration.write(initial_rewards_duration);
 
         return ();
     }
@@ -154,7 +160,7 @@ namespace StakingRewards {
     }
 
     func earned{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt) -> (
-        reward_earned: Uint256
+        reward: Uint256
     ) {
         alloc_locals;
         with_attr error_message("StakingRewards: invalid account") {
@@ -253,6 +259,27 @@ namespace StakingRewards {
         return token;
     }
 
+    func period_finish{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> felt {
+        let (res) = StakingRewards_period_finish.read();
+
+        return res;
+    }
+
+    func reward_rate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+        res: Uint256
+    ) {
+        let (res) = StakingRewards_reward_rate.read();
+
+        return (res,);
+    }
+
+    func rewards_duration{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        ) -> felt {
+        let (res) = StakingRewards_rewards_duration.read();
+
+        return res;
+    }
+
     func staking_bridge_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         ) -> felt {
         let (res) = StakingRewards_staking_bridge_l1.read();
@@ -326,6 +353,7 @@ namespace StakingRewards {
         reward: Uint256
     ) {
         alloc_locals;
+        // let (__fp__, _) = get_fp_and_pc();
         let (caller) = get_caller_address();
         _verify_caller(caller);
         let rewards_distribution_address = rewards_distribution();
@@ -338,7 +366,7 @@ namespace StakingRewards {
         let (duration) = StakingRewards_rewards_duration.read();
         let is_period_finished = is_le(period_finish, block_timestamp);
         let (reward_rate_stored) = StakingRewards_reward_rate.read();
-        local current_reward_rate_ptr: Uint256*;
+        let (current_reward_rate_ptr: Uint256*) = alloc();
 
         if (is_period_finished == TRUE) {
             let (new_reward_rate: Uint256, _) = SafeUint256.div_rem(reward, Uint256(duration, 0));
@@ -392,9 +420,7 @@ namespace StakingRewards {
         _stake(caller, amount);
         let staking_token_address = staking_token();
         let (this_contract) = get_contract_address();
-        SafeERC20.safe_transfer_from(
-            token=staking_token_address, sender=caller, recipient=this_contract, amount=amount
-        );
+        SafeERC20.safe_transfer_from(staking_token_address, caller, this_contract, amount);
         LogStake.emit(caller, amount, FALSE);
 
         return ();

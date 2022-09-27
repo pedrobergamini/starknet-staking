@@ -27,10 +27,19 @@ namespace IStakingRewards {
     func rewardsDistribution() -> (contract_address: felt) {
     }
 
+    func rewardToken() -> (token: felt) {
+    }
+
     func stakingToken() -> (token: felt) {
     }
 
-    func rewardToken() -> (token: felt) {
+    func periodFinish() -> (res: felt) {
+    }
+
+    func rewardRate() -> (res: Uint256) {
+    }
+
+    func rewardsDuration() -> (res: felt) {
     }
 
     func stakingBridgeL1() -> (res: felt) {
