@@ -57,18 +57,14 @@ const config: HardhatUserConfig = {
     src: "./contracts",
   },
   networks: {
-    // hardhat: {
-    //   accounts: {
-    //     mnemonic,
-    //   },
-    //   chainId: chainIds.hardhat,
-    // },
-    l1_testnet: {
-      url: "http://127.0.0.1:8545",
-      chainId: chainIds.ganache,
+    hardhat: {
+      accounts: {
+        mnemonic,
+      },
+      chainId: chainIds.hardhat,
     },
     l2_testnet: {
-      url: "http://127.0.0.1:5050",
+      url: "http://localhost:5050",
     },
     goerli: getChainConfig("goerli"),
     mainnet: getChainConfig("mainnet"),

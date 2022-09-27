@@ -166,7 +166,7 @@ namespace StakingRewards {
         let (reward_per_token_paid: Uint256) = StakingRewards_reward_per_token_paid.read(account);
         let (accumulated_rewards_stored: Uint256) = StakingRewards_rewards.read(account);
 
-        let (reward_per_token_delta: Uint256) = SafeUint256.sub_lt(
+        let (reward_per_token_delta: Uint256) = SafeUint256.sub_le(
             current_reward_per_token, reward_per_token_paid
         );
         let (is_delta_zero) = uint256_eq(reward_per_token_delta, Uint256(0, 0));

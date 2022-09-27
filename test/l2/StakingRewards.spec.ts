@@ -1,14 +1,20 @@
 import { expect } from "chai";
-import { ethers, network, starknet } from "hardhat";
+import { ethers, starknet } from "hardhat";
 
 import config from "../../hardhat.config";
+import {
+  DEFAULT_TIMEOUT,
+  MAX_UINT256_ETHERS,
+  MAX_UINT256_STARKNET,
+  ONE_MILLION,
+  fromUint256,
+  toUint256,
+} from "../utils";
 
 const {
   utils: { parseEther },
 } = ethers;
-const ONE_MILLION = 1000000;
-const DEFAULT_TIMEOUT = 30000;
-const TOKEN_UNIT = BigInt(10 ** 18);
+
 const networkUrl = "http://localhost:8545";
 
 describe("StakingRewards", async function () {
@@ -43,17 +49,17 @@ describe("StakingRewards", async function () {
     this.l1StakingToken = await this.L1ERC20.deploy("Staking Token", "STK", parseEther(ONE_MILLION.toString()));
     this.l1RewardToken = await this.L1ERC20.deploy("Reward Token", "RWD", parseEther(ONE_MILLION.toString()));
     this.l2StakingToken = await this.L2ERC20.deploy({
-      name: BigInt(123),
-      symbol: BigInt(1234),
+      name: starknet.shortStringToBigInt("Staking Token"),
+      symbol: starknet.shortStringToBigInt("STK"),
       decimals: BigInt(18),
-      initial_supply: { high: BigInt(0), low: BigInt(ONE_MILLION) * TOKEN_UNIT },
+      initial_supply: toUint256(parseEther(ONE_MILLION)),
       recipient: BigInt(this.l2Signers.admin.address),
     });
     this.l2RewardToken = await this.L2ERC20.deploy({
-      name: BigInt(12345),
-      symbol: BigInt(123456),
+      name: starknet.shortStringToBigInt("Reward Token"),
+      symbol: starknet.shortStringToBigInt("RWD"),
       decimals: BigInt(18),
-      initial_supply: { high: BigInt(0), low: BigInt(ONE_MILLION) * TOKEN_UNIT },
+      initial_supply: toUint256(parseEther(ONE_MILLION)),
       recipient: BigInt(this.l2Signers.admin.address),
     });
     this.rewardsDistribution = await this.RewardsDistribution.deploy({
@@ -74,9 +80,23 @@ describe("StakingRewards", async function () {
     );
 
     await this.l2Signers.admin.invoke(this.l2StakingToken, "transfer", {
-      to: BigInt(this.l2Signers.alice.starknetContract.address),
-      amount: { low: BigInt(ONE_MILLION), high: 0 },
+      recipient: BigInt(this.l2Signers.alice.starknetContract.address),
+      amount: toUint256(parseEther(ONE_MILLION)),
     });
   });
-  it("should update the user balance", async function () {});
+  it("should update the user balance", async function () {
+    await this.l2Signers.alice.invoke(this.l2StakingToken, "approve", {
+      spender: BigInt(this.stakingRewards.address),
+      amount: MAX_UINT256_STARKNET,
+    });
+    const amountToStake = parseEther("100");
+    await this.l2Signers.alice.invoke(this.stakingRewards, "stakeL2", {
+      amount: toUint256(amountToStake),
+    });
+    const { balance } = await this.stakingRewards.call("balanceOf", {
+      account: BigInt(this.l2Signers.alice.address),
+    });
+
+    expect(fromUint256(balance)).to.be.equal(amountToStake);
+  });
 });

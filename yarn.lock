@@ -7195,6 +7195,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"isomorphic-fetch@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "isomorphic-fetch@npm:3.0.0"
+  dependencies:
+    node-fetch: ^2.6.1
+    whatwg-fetch: ^3.4.1
+  checksum: e5ab79a56ce5af6ddd21265f59312ad9a4bc5a72cebc98b54797b42cb30441d5c5f8d17c5cd84a99e18101c8af6f90c081ecb8d12fd79e332be1778d58486d75
+  languageName: node
+  linkType: hard
+
 "isstream@npm:~0.1.2":
   version: 0.1.2
   resolution: "isstream@npm:0.1.2"
@@ -8493,7 +8503,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-fetch@npm:2.6.7, node-fetch@npm:^2.6.0":
+"node-fetch@npm:2.6.7, node-fetch@npm:^2.6.0, node-fetch@npm:^2.6.1":
   version: 2.6.7
   resolution: "node-fetch@npm:2.6.7"
   dependencies:
@@ -10594,6 +10604,7 @@ __metadata:
     solhint: ^3.3.7
     solhint-plugin-prettier: ^0.0.5
     solidity-coverage: ^0.7.21
+    starknet: ^4.4.2
     ts-generator: ^0.1.1
     ts-node: ^10.9.1
     typechain: ^8.1.0
@@ -10617,6 +10628,25 @@ __metadata:
     ts-custom-error: ^3.2.0
     url-join: ^4.0.1
   checksum: 1eff55d5476e5c0515f1fd5398797aa630ee0c0ce496eabfa05312e7e7dcd0ac503a99337b7e59143a77bb461a63b7966f37099e7366ee4c4c1fb903e0befa66
+  languageName: node
+  linkType: hard
+
+"starknet@npm:^4.4.2":
+  version: 4.7.0
+  resolution: "starknet@npm:4.7.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.6.1
+    bn.js: ^5.2.1
+    elliptic: ^6.5.4
+    ethereum-cryptography: ^1.0.3
+    hash.js: ^1.1.7
+    isomorphic-fetch: ^3.0.0
+    json-bigint: ^1.0.0
+    minimalistic-assert: ^1.0.1
+    pako: ^2.0.4
+    ts-custom-error: ^3.2.0
+    url-join: ^4.0.1
+  checksum: 974f71a838bb8252ba2ef16be2af6124d47c0733c9af2ae446778ef4c59594f9e9baf22e8a1504793be5dca188a122a22a106bc8bbcd29a04715be00637d30f7
   languageName: node
   linkType: hard
 
@@ -12026,6 +12056,13 @@ __metadata:
     utf-8-validate: ^5.0.2
     yaeti: ^0.0.6
   checksum: 8a0ce6d79cc1334bb6ea0d607f0092f3d32700b4dd19e4d5540f2a85f3b50e1f8110da0e4716737056584dde70bbebcb40bbd94bbb437d7468c71abfbfa077d8
+  languageName: node
+  linkType: hard
+
+"whatwg-fetch@npm:^3.4.1":
+  version: 3.6.2
+  resolution: "whatwg-fetch@npm:3.6.2"
+  checksum: ee976b7249e7791edb0d0a62cd806b29006ad7ec3a3d89145921ad8c00a3a67e4be8f3fb3ec6bc7b58498724fd568d11aeeeea1f7827e7e1e5eae6c8a275afed
   languageName: node
   linkType: hard
 
