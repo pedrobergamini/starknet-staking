@@ -4,6 +4,11 @@ protostar_version = "0.4.2"
 ["protostar.project"]
 libs_path = "lib"
 
+["protostar.build"]
+cairo-path = [
+  "lib/cairo_contracts/src"
+]
+
 ["protostar.contracts"]
 StakingRewards = [
     "contracts/l2/staking/StakingRewards.cairo",

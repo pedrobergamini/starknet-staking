@@ -5,7 +5,7 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.bool import TRUE
 from starkware.cairo.common.uint256 import Uint256
-from contracts.l2.openzeppelin.access.ownable.library import Ownable
+from openzeppelin.access.ownable.library import Ownable
 from contracts.l2.rewards_distribution.library import RewardsDistribution
 from contracts.l2.rewards_distribution.IRewardsDistribution import Distribution
 

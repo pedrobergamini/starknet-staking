@@ -15,7 +15,7 @@ from starkware.starknet.common.syscalls import (
     get_contract_address,
 )
 from starkware.starknet.common.messages import send_message_to_l1
-from contracts.l2.openzeppelin.security.safemath.library import SafeUint256
+from openzeppelin.security.safemath.library import SafeUint256
 from contracts.l2.lib.interfaces.IERC20 import IERC20
 from contracts.l2.lib.SafeERC20 import SafeERC20
 
