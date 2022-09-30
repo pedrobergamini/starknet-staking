@@ -1,6 +1,7 @@
 %lang starknet
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.uint256 import Uint256, assert_uint256_eq
+from starkware.cairo.common.bool import TRUE
 from openzeppelin.token.erc20.IERC20 import IERC20
 from contracts.l2.staking.IStakingRewards import IStakingRewards
 
@@ -76,13 +77,26 @@ func __setup__{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         spender=staking_rewards,
         amount=Uint256(MAX_UINT256, MAX_UINT256),
     );
+    %{ stop_prank_callable() %}
 
     return ();
 }
 
 @view
-func test_stakeL2() {
-    assert 1 = 1;
+func test_stakeL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    local staking_rewards;
+    %{ ids.staking_rewards = context.staking_rewards %}
+    %{ stop_prank_callable = start_prank(ids.ALICE, context.staking_rewards) %}
+    let (success) = IStakingRewards.stakeL2(
+        contract_address=staking_rewards, amount=Uint256(ONE_MILLION, 0)
+    );
+    assert success = TRUE;
+    let (alice_balance) = IStakingRewards.balanceOf(
+        contract_address=staking_rewards, account=ALICE
+    );
+    assert_uint256_eq(alice_balance, Uint256(ONE_MILLION, 0));
+    %{ stop_prank_callable() %}
 
     return ();
 }
