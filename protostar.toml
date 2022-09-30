@@ -9,6 +9,11 @@ cairo-path = [
   "lib/cairo_contracts/src"
 ]
 
+["protostar.test"]
+cairo-path = [
+  "lib/cairo_contracts/src"
+]
+
 ["protostar.contracts"]
 StakingRewards = [
     "contracts/l2/staking/StakingRewards.cairo",

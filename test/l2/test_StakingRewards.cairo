@@ -1,43 +1,88 @@
 %lang starknet
 from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.uint256 import Uint256
+from openzeppelin.token.erc20.IERC20 import IERC20
+from contracts.l2.staking.IStakingRewards import IStakingRewards
 
 const ADMIN = 1;
 const ALICE = 2;
 const BOB = 3;
+const ONE_MILLION = 1000000 * 10 ** 18;  // one million tokens
 const ERC20_DECIMALS = 18;
 const ERC20_INITIAL_SUPPLY = 100000000 * 10 ** 18;  // 100 million
 const SEVEN_DAYS = 86400 * 7;
+const MAX_UINT256 = 2 ** 128 - 1;
 
 @view
-func __setup__() {
+func __setup__{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    local staking_token;
+    local reward_token;
+    local staking_rewards;
+
     %{
-        context.staking_token = deploy_contract("openzeppelin/token/erc20/presets/ERC20.cairo" [
-            "Staking Token",
-            "STK",
-            ERC20_DECIMALS,
-            Uint256(ERC20_INITIAL_SUPPLY, 0),
-            ADMIN
-        ]).contract_address
-        context.reward_token = deploy_contract("openzeppelin/token/erc20/presets/ERC20.cairo", [
-            "Reward Token",
-            "RWD",
-            ERC20_DECIMALS,
-            UINT256(ERC20_INITIAL_SUPPLY, 0),
-            ADMIN
-        ]).contract_address
-        context.staking_rewards = deploy_contract("contracts/l2/staking/StakingRewards.cairo", [
-            ADMIN,
-            context.reward_token,
-            context.staking_token,
-            SEVEN_DAYS,
-            ADMIN
-
-        ]).contract_address
-        print(context.staking_token, context.reward_token, context.staking_rewards)
+        context.staking_token = deploy_contract("./lib/cairo_contracts/src/openzeppelin/token/erc20/presets/ERC20.cairo",
+            {
+                "name": "Staking Token",
+                "symbol": "STK",
+                "decimals": ids.ERC20_DECIMALS,
+                "initial_supply": ids.ERC20_INITIAL_SUPPLY,
+                "recipient": ids.ADMIN
+            }
+        ).contract_address
+        context.reward_token = deploy_contract("lib/cairo_contracts/src/openzeppelin/token/erc20/presets/ERC20.cairo",
+            {
+                "name": "Reward Token",
+                "symbol": "RWD",
+                "decimals": ids.ERC20_DECIMALS,
+                "initial_supply": ids.ERC20_INITIAL_SUPPLY,
+                "recipient": ids.ADMIN
+            }
+        ).contract_address
+        context.staking_rewards = deploy_contract("contracts/l2/staking/StakingRewards.cairo",
+            {
+                "rewards_distribution": ids.ADMIN,
+                "reward_token": context.reward_token,
+                "staking_token": context.staking_token,
+                "initial_rewards_duration": ids.SEVEN_DAYS,
+                "owner": ids.ADMIN
+            }
+        ).contract_address
+        ids.staking_token = context.staking_token
+        ids.reward_token = context.reward_token
+        ids.staking_rewards = context.staking_rewards
+        stop_prank_callable = start_prank(ids.ADMIN, context.staking_token)
     %}
+    IERC20.transfer(
+        contract_address=staking_token, recipient=ALICE, amount=Uint256(ONE_MILLION, 0)
+    );
+    IERC20.transfer(contract_address=staking_token, recipient=BOB, amount=Uint256(ONE_MILLION, 0));
+    IERC20.approve(
+        contract_address=staking_token,
+        spender=staking_rewards,
+        amount=Uint256(MAX_UINT256, MAX_UINT256),
+    );
+    %{ stop_prank_callable() %}
+    %{ stop_prank_callable = start_prank(ids.ALICE, context.staking_token) %}
+    IERC20.approve(
+        contract_address=staking_token,
+        spender=staking_rewards,
+        amount=Uint256(MAX_UINT256, MAX_UINT256),
+    );
+    %{ stop_prank_callable() %}
+    %{ stop_prank_callable = start_prank(ids.BOB, context.staking_token) %}
+    IERC20.approve(
+        contract_address=staking_token,
+        spender=staking_rewards,
+        amount=Uint256(MAX_UINT256, MAX_UINT256),
+    );
 
-    @view
-    func test_stake_l2() {
-        assert 1 = 1;
-    }
+    return ();
+}
+
+@view
+func test_stakeL2() {
+    assert 1 = 1;
+
+    return ();
 }
