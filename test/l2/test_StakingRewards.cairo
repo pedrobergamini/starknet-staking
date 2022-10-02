@@ -252,7 +252,11 @@ func test_recoverERC20{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     %}
     IERC20.transfer(contract_address=mocked_token, recipient=staking_rewards, amount=token_amount);
     let (initial_balance) = IERC20.balanceOf(contract_address=mocked_token, account=ADMIN);
-    %{ expect_events({name: "LogRecoverERC20", token: ids.mocked_token, amount: ids.token_amount}) %}
+    %{
+        expect_events({"name": "LogRecoverERC20", "token": ids.mocked_token, "amount": ids.token_amount})
+        stop_prank()
+        stop_prank = start_prank(ids.ADMIN, ids.staking_rewards)
+    %}
     IStakingRewards.recoverERC20(
         contract_address=staking_rewards, token=mocked_token, amount=token_amount
     );
