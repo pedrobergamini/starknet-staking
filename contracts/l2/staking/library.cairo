@@ -180,9 +180,11 @@ namespace StakingRewards {
             return (accumulated_rewards_stored,);
         }
 
+        let (accrued_rewards) = SafeUint256.mul(account_balance, reward_per_token_delta);
         let (accrued_rewards_normalized: Uint256, _) = SafeUint256.div_rem(
-            reward_per_token_delta, Uint256(BASE_MULTIPLIER, 0)
+            accrued_rewards, Uint256(BASE_MULTIPLIER, 0)
         );
+
         let (total_rewards: Uint256) = SafeUint256.add(
             accrued_rewards_normalized, accumulated_rewards_stored
         );

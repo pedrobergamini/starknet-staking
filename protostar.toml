@@ -11,7 +11,8 @@ cairo-path = [
 
 ["protostar.test"]
 cairo-path = [
-  "lib/cairo_contracts/src"
+  "lib/cairo_contracts/src",
+  "test/l2"
 ]
 
 ["protostar.contracts"]
