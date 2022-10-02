@@ -340,7 +340,7 @@ namespace StakingRewards {
     func recover_erc20{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token: felt, receiver: felt, amount: Uint256
     ) {
-        let res = reward_token();
+        let res = staking_token();
         with_attr error_message("StakingRewards: Cannot recover staking token") {
             assert_not_equal(res, token);
         }
@@ -481,7 +481,7 @@ namespace StakingRewards {
         return ();
     }
 
-    func claim_rewards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    func claim_reward_l2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         alloc_locals;
         let (caller) = get_caller_address();
         _verify_caller(caller);
@@ -502,7 +502,7 @@ namespace StakingRewards {
         return ();
     }
 
-    func claim_reward_to_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    func claim_reward_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         alloc_locals;
         let (caller) = get_caller_address();
         _verify_caller(caller);
@@ -541,7 +541,7 @@ namespace StakingRewards {
         let (caller) = get_caller_address();
         let (user_balance: Uint256) = StakingRewards_balances.read(caller);
         withdraw_l1(user_balance);
-        claim_reward_to_l1();
+        claim_reward_l1();
 
         return ();
     }
@@ -550,7 +550,7 @@ namespace StakingRewards {
         let (caller) = get_caller_address();
         let (user_balance: Uint256) = StakingRewards_balances.read(caller);
         withdraw_l2(user_balance);
-        claim_rewards();
+        claim_reward_l2();
 
         return ();
     }

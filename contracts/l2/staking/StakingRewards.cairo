@@ -225,19 +225,19 @@ func withdrawL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}
 }
 
 @external
-func claimReward{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+func claimRewardL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     success: felt
 ) {
-    StakingRewards.claim_rewards();
+    StakingRewards.claim_reward_l2();
 
     return (TRUE,);
 }
 
 @external
-func claimRewardToL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+func claimRewardL1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
     success: felt
 ) {
-    StakingRewards.claim_reward_to_l1();
+    StakingRewards.claim_reward_l1();
 
     return (TRUE,);
 }
