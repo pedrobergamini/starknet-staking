@@ -276,11 +276,87 @@ func test_recoverERC20{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     return ();
 }
 
-// @view
-// func test_stakeL2
+@external
+func test_stakeL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    local staking_rewards;
+    local stake_value: Uint256 = Uint256(1000 * 10 ** 18, 0);
+    %{
+        ids.staking_rewards = context.staking_rewards
+        stop_prank = start_prank(ids.ALICE, context.staking_rewards)
+    %}
+    %{ expect_events({"name": "LogStake", "user": ids.ALICE, "amount": ids.stake_value, "staked_from_l1": 0}) %}
+    let (success) = IStakingRewards.stakeL2(contract_address=staking_rewards, amount=stake_value);
+    assert success = TRUE;
+    %{ stop_prank() %}
+    test_utils.distributeRewards();
+    %{ expect_revert(error_message="StakingRewards: cannot stake 0") %}
+    IStakingRewards.stakeL2(contract_address=staking_rewards, amount=Uint256(0, 0));
 
-// @view
-// func test_withdrawL2
+    %{
+        stop_prank = start_prank(ids.BOB, context.staking_rewards)
+        expect_events({"name": "LogStake", "user": ids.BOB, "amount": ids.stake_value, "staked_from_l1": 0})
+    %}
+    let (success) = IStakingRewards.stakeL2(contract_address=staking_rewards, amount=stake_value);
+    let (total_supply) = IStakingRewards.totalSupply(contract_address=staking_rewards);
+    let (balance) = IStakingRewards.balanceOf(contract_address=staking_rewards, account=BOB);
+    let (expected_total_supply) = SafeUint256.mul(stake_value, Uint256(2, 0));
+
+    assert success = TRUE;
+    assert_uint256_eq(total_supply, expected_total_supply);
+    assert_uint256_eq(balance, stake_value);
+
+    return ();
+}
+
+@external
+func test_withdrawL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    local staking_rewards;
+    local alice_stake_value: Uint256 = Uint256(2000 * 10 ** 18, 0);
+    local bob_stake_value: Uint256 = Uint256(1000 * 10 ** 18, 0);
+    %{ ids.staking_rewards = context.staking_rewards %}
+    test_utils.distributeRewards();
+
+    %{ stop_prank = start_prank(ids.BOB, context.staking_rewards) %}
+    IStakingRewards.stakeL2(contract_address=staking_rewards, amount=bob_stake_value);
+    %{ expect_events({"name": "LogWithdraw", "user": ids.BOB, "amount": ids.bob_stake_value, "withdrawn_to_l1": 0}) %}
+    let (success) = IStakingRewards.withdrawL2(
+        contract_address=staking_rewards, amount=bob_stake_value
+    );
+    assert success = TRUE;
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.ALICE, context.staking_rewards)
+    %}
+    IStakingRewards.stakeL2(contract_address=staking_rewards, amount=alice_stake_value);
+    %{ expect_events({"name": "LogWithdraw", "user": ids.ALICE, "amount": ids.bob_stake_value, "withdrawn_to_l1": 0}) %}
+    let (success) = IStakingRewards.withdrawL2(
+        contract_address=staking_rewards, amount=bob_stake_value
+    );
+    assert success = TRUE;
+
+    %{ expect_revert(error_message="StakingRewards: cannot withdraw 0") %}
+
+    let (success) = IStakingRewards.withdrawL2(
+        contract_address=staking_rewards, amount=Uint256(0, 0)
+    );
+    let (total_supply) = IStakingRewards.totalSupply(contract_address=staking_rewards);
+    let (alice_balance) = IStakingRewards.balanceOf(
+        contract_address=staking_rewards, account=ALICE
+    );
+    let (bob_balance) = IStakingRewards.balanceOf(contract_address=staking_rewards, account=BOB);
+    let expected_total_supply = Uint256(1000 * 10 ** 18, 0);
+    let expected_alice_balance = Uint256(1000 * 10 ** 18, 0);
+    let expected_bob_balance = Uint256(0, 0);
+
+    assert success = TRUE;
+    assert_uint256_eq(total_supply, expected_total_supply);
+    assert_uint256_eq(alice_balance, expected_alice_balance);
+    assert_uint256_eq(bob_balance, expected_bob_balance);
+
+    return ();
+}
 
 // @view
 // func test_claimRewards
