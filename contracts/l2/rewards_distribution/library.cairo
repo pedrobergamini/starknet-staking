@@ -48,12 +48,14 @@ func RewardsDistribution_distributions_len() -> (res: felt) {
 namespace RewardsDistribution {
     // @notice RewardsDistribution initializer
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        authority_address: felt
+        authority: felt, reward_token: felt
     ) {
         with_attr error_message("RewardsDistribution: invalid initialization parameters") {
-            assert_not_zero(authority_address);
+            assert_not_zero(authority);
+            assert_not_zero(reward_token);
         }
-        RewardsDistribution_authority.write(authority_address);
+        RewardsDistribution_authority.write(authortiy);
+        RewardsDistribution_reward_token.write(reward_token);
 
         return ();
     }

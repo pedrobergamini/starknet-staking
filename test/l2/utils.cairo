@@ -10,6 +10,7 @@ from contracts.l2.staking.IStakingRewards import IStakingRewards
 const ADMIN = 1;
 const ALICE = 2;
 const BOB = 3;
+const AUTHORITY = 4;
 const ONE_MILLION = 1000000 * 10 ** 18;  // one million tokens
 const ERC20_DECIMALS = 18;
 const ERC20_INITIAL_SUPPLY = 100000000 * 10 ** 18;  // 100 million

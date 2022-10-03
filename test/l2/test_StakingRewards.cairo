@@ -28,7 +28,7 @@ func __setup__{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     local staking_rewards;
 
     %{
-        context.staking_token = deploy_contract("./lib/cairo_contracts/src/openzeppelin/token/erc20/presets/ERC20.cairo",
+        context.staking_token = deploy_contract("lib/cairo_contracts/src/openzeppelin/token/erc20/presets/ERC20.cairo",
             {
                 "name": "Staking Token",
                 "symbol": "STK",
