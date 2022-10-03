@@ -69,15 +69,21 @@ func __setup__{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         spender=staking_rewards,
         amount=Uint256(MAX_UINT256_FELT, MAX_UINT256_FELT),
     );
-    %{ stop_prank() %}
-    %{ stop_prank = start_prank(ids.ALICE, context.staking_token) %}
+
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.ALICE, context.staking_token)
+    %}
     IERC20.approve(
         contract_address=staking_token,
         spender=staking_rewards,
         amount=Uint256(MAX_UINT256_FELT, MAX_UINT256_FELT),
     );
-    %{ stop_prank() %}
-    %{ stop_prank = start_prank(ids.BOB, context.staking_token) %}
+
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.BOB, context.staking_token)
+    %}
     IERC20.approve(
         contract_address=staking_token,
         spender=staking_rewards,
@@ -92,8 +98,11 @@ func __setup__{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func test_balanceOf{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
     alloc_locals;
     local staking_rewards;
-    %{ ids.staking_rewards = context.staking_rewards %}
-    %{ stop_prank = start_prank(ids.ALICE, context.staking_rewards) %}
+
+    %{
+        stop_prank = start_prank(ids.ALICE, context.staking_rewards)
+        ids.staking_rewards = context.staking_rewards
+    %}
     let (success) = IStakingRewards.stakeL2(
         contract_address=staking_rewards, amount=Uint256(ONE_MILLION, 0)
     );
@@ -121,7 +130,6 @@ func test_earned{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
     IStakingRewards.stakeL2(contract_address=staking_rewards, amount=stake_value);
     let (block_timestamp) = get_block_timestamp();
     %{ stop_warp = warp(ids.block_timestamp + ids.SEVEN_DAYS, ids.staking_rewards) %}
-    let (new_block_timestamp) = get_block_timestamp();
     %{ stop_prank() %}
     %{ stop_prank = start_prank(ids.ALICE, context.staking_rewards) %}
     IStakingRewards.stakeL2(contract_address=staking_rewards, amount=Uint256(500, 0));
@@ -134,7 +142,10 @@ func test_earned{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 
     assert_uint256_eq(alice_reward_parsed, expected_rewards_parsed);
     assert_uint256_eq(bob_reward_parsed, expected_rewards_parsed);
-    %{ stop_prank() %}
+    %{
+        stop_prank()
+        stop_warp()
+    %}
 
     return ();
 }
@@ -177,6 +188,7 @@ func test_lastTimeRewardApplicable{syscall_ptr: felt*, pedersen_ptr: HashBuiltin
 
     assert first_res = 1000;
     assert second_res = SEVEN_DAYS;
+    %{ stop_warp() %}
 
     return ();
 }
@@ -200,6 +212,10 @@ func test_rewardPerToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     let expected_reward_per_token = ONE_MILLION / (stake_value.low * 2);
 
     assert reward_per_token_parsed.low = expected_reward_per_token;
+    %{
+        stop_warp()
+        stop_prank()
+    %}
 
     return ();
 }
@@ -227,6 +243,7 @@ func test_setRewardsDuration{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, ran
     IStakingRewards.setRewardsDuration(
         contract_address=staking_rewards, duration=MAX_UINT256_FELT + 1
     );
+    %{ stop_prank() %}
 
     return ();
 }
@@ -272,6 +289,7 @@ func test_recoverERC20{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     );
 
     assert_uint256_eq(recovered_amount, token_amount);
+    %{ stop_prank() %}
 
     return ();
 }
@@ -305,6 +323,7 @@ func test_stakeL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_pt
     assert success = TRUE;
     assert_uint256_eq(total_supply, expected_total_supply);
     assert_uint256_eq(balance, stake_value);
+    %{ stop_prank() %}
 
     return ();
 }
@@ -354,12 +373,100 @@ func test_withdrawL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check
     assert_uint256_eq(total_supply, expected_total_supply);
     assert_uint256_eq(alice_balance, expected_alice_balance);
     assert_uint256_eq(bob_balance, expected_bob_balance);
+    %{ stop_prank() %}
 
     return ();
 }
 
-// @view
-// func test_claimRewards
+@external
+func test_claimRewardL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    local staking_rewards;
+    local reward_token;
+    local stake_value: Uint256 = Uint256(1000 * 10 ** 18, 0);
+    let (expected_rewards, _) = SafeUint256.div_rem(Uint256(ONE_MILLION, 0), Uint256(2, 0));
+    %{
+        ids.staking_rewards = context.staking_rewards
+        ids.reward_token = context.reward_token
+    %}
+    test_utils.distributeRewards();
+    %{ stop_prank = start_prank(ids.ALICE, context.staking_rewards) %}
+    IStakingRewards.stakeL2(contract_address=staking_rewards, amount=stake_value);
+    %{ stop_prank() %}
+    %{ stop_prank = start_prank(ids.BOB, context.staking_rewards) %}
+    IStakingRewards.stakeL2(contract_address=staking_rewards, amount=stake_value);
+    let (block_timestamp) = get_block_timestamp();
+    %{
+        stop_warp = warp(ids.block_timestamp + ids.SEVEN_DAYS, ids.staking_rewards)
+        expect_events({"name": "LogClaimReward", "user": ids.BOB, "reward": ids.expected_rewards, "claimed_to_l1": 0 })
+    %}
+    let (success) = IStakingRewards.claimRewardL2(contract_address=staking_rewards);
+    assert success = TRUE;
+    let (bob_reward_balance) = IERC20.balanceOf(contract_address=reward_token, account=BOB);
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.ALICE, context.staking_rewards)
+        expect_events({"name": "LogClaimReward", "user": ids.ALICE, "reward": ids.expected_rewards, "claimed_to_l1": 0 })
+    %}
+    let (success) = IStakingRewards.claimRewardL2(contract_address=staking_rewards);
+    assert success = TRUE;
+    let (alice_reward_balance) = IERC20.balanceOf(contract_address=reward_token, account=ALICE);
+    let (alice_reward_parsed) = test_utils.uint256_divide_and_ceil(alice_reward_balance);
+    let (bob_reward_parsed) = test_utils.uint256_divide_and_ceil(bob_reward_balance);
+    let (expected_rewards_parsed) = test_utils.uint256_divide_and_ceil(expected_rewards);
 
-// @view
-// func test_exitL2
+    assert_uint256_eq(alice_reward_parsed, expected_rewards_parsed);
+    assert_uint256_eq(bob_reward_parsed, expected_rewards_parsed);
+    %{
+        stop_prank()
+        stop_warp()
+    %}
+
+    return ();
+}
+@external
+func test_exitL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    local staking_rewards;
+    local reward_token;
+    local stake_value: Uint256 = Uint256(1000 * 10 ** 18, 0);
+    let (expected_rewards, _) = SafeUint256.div_rem(Uint256(ONE_MILLION, 0), Uint256(2, 0));
+    %{
+        ids.staking_rewards = context.staking_rewards
+        ids.reward_token = context.reward_token
+    %}
+    test_utils.distributeRewards();
+    %{ stop_prank = start_prank(ids.ALICE, context.staking_rewards) %}
+    IStakingRewards.stakeL2(contract_address=staking_rewards, amount=stake_value);
+    %{ stop_prank() %}
+    %{ stop_prank = start_prank(ids.BOB, context.staking_rewards) %}
+    IStakingRewards.stakeL2(contract_address=staking_rewards, amount=stake_value);
+    let (block_timestamp) = get_block_timestamp();
+    %{
+        stop_warp = warp(ids.block_timestamp + ids.SEVEN_DAYS, ids.staking_rewards)
+        expect_events({"name": "LogClaimReward", "user": ids.BOB, "reward": ids.expected_rewards, "claimed_to_l1": 0 },{"name": "LogWithdraw", "user": ids.BOB, "amount": ids.stake_value, "withdrawn_to_l1": 0})
+    %}
+    let (success) = IStakingRewards.exitL2(contract_address=staking_rewards);
+    assert success = TRUE;
+    let (bob_reward_balance) = IERC20.balanceOf(contract_address=reward_token, account=BOB);
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.ALICE, context.staking_rewards)
+        expect_events({"name": "LogClaimReward", "user": ids.ALICE, "reward": ids.expected_rewards, "claimed_to_l1": 0 }, {"name": "LogWithdraw", "user": ids.ALICE, "amount": ids.stake_value, "withdrawn_to_l1": 0})
+    %}
+    let (success) = IStakingRewards.exitL2(contract_address=staking_rewards);
+    assert success = TRUE;
+    let (alice_reward_balance) = IERC20.balanceOf(contract_address=reward_token, account=ALICE);
+    let (alice_reward_parsed) = test_utils.uint256_divide_and_ceil(alice_reward_balance);
+    let (bob_reward_parsed) = test_utils.uint256_divide_and_ceil(bob_reward_balance);
+    let (expected_rewards_parsed) = test_utils.uint256_divide_and_ceil(expected_rewards);
+
+    assert_uint256_eq(alice_reward_parsed, expected_rewards_parsed);
+    assert_uint256_eq(bob_reward_parsed, expected_rewards_parsed);
+    %{
+        stop_prank()
+        stop_warp()
+    %}
+
+    return ();
+}
