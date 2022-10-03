@@ -140,14 +140,18 @@ namespace RewardsDistribution {
     }
 
     func edit_reward_distribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        index: felt, new_distribution: Distribution
+        index: felt, distribution: Distribution
     ) {
         let current_distributions_index = distributions_len();
         with_attr error_message("RewardsDistribution: index out of bounds") {
             assert_lt(index, current_distributions_index);
         }
-        RewardsDistribution_distributions.write(index, new_distribution);
-        LogEditRewardDistribution.emit(index, new_distribution);
+        with_attr error_message("RewardsDistribution: invalid destination or amount") {
+            assert_not_zero(distribution.destination);
+            assert_uint256_lt(Uint256(0, 0), distribution.amount);
+        }
+        RewardsDistribution_distributions.write(index, distribution);
+        LogEditRewardDistribution.emit(index, distribution);
 
         return ();
     }

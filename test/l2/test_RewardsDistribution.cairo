@@ -9,7 +9,10 @@ from starkware.starknet.common.syscalls import get_block_timestamp
 from openzeppelin.token.erc20.IERC20 import IERC20
 from openzeppelin.security.safemath.library import SafeUint256
 from contracts.l2.staking.IStakingRewards import IStakingRewards
-from contracts.l2.rewards_distribution.IRewardsDistribution import IRewardsDistribution
+from contracts.l2.rewards_distribution.IRewardsDistribution import (
+    IRewardsDistribution,
+    Distribution,
+)
 from utils import (
     test_utils,
     ADMIN,
@@ -93,6 +96,7 @@ func test_rewardToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_chec
         ids.reward_token = context.reward_token
     %}
     let (res) = IRewardsDistribution.rewardToken(contract_address=rewards_distribution);
+
     assert reward_token = res;
 
     return ();
@@ -107,6 +111,7 @@ func test_setAuthority{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_che
     %}
     IRewardsDistribution.setAuthority(contract_address=rewards_distribution, authority=ADMIN);
     let (authority) = IRewardsDistribution.authority(contract_address=rewards_distribution);
+
     assert authority = ADMIN;
     %{ stop_prank() %}
 
@@ -124,6 +129,108 @@ func test_setRewardToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
     let (reward_token) = IRewardsDistribution.rewardToken(contract_address=rewards_distribution);
     assert reward_token = ADMIN;
     %{ stop_prank() %}
+
+    return ();
+}
+
+@external
+func test_addRewardDistribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    local rewards_distribution;
+    local staking_rewards;
+
+    let distribution_amount: Uint256 = Uint256(ONE_MILLION, 0);
+    let distribution: Distribution = Distribution(staking_rewards, distribution_amount);
+    %{
+        ids.rewards_distribution = context.rewards_distribution
+        ids.staking_rewards = context.staking_rewards
+        stop_prank = start_prank(ids.ALICE, context.rewards_distribution)
+    %}
+    %{ expect_revert(error_message="Ownable: caller is not the owner") %}
+    IRewardsDistribution.addRewardDistribution(
+        contract_address=rewards_distribution, distribution=distribution
+    );
+
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.ADMIN, context.rewards_distribution)
+    %}
+    let invalid_distribution: Distribution = Distribution(staking_rewards, Uint256(0, 0));
+    %{ expect_revert(error_message="RewardsDistribution: invalid destination or amount") %}
+    IRewardsDistribution.addRewardDistribution(
+        contract_address=rewards_distribution, distribution=invalid_distribution
+    );
+
+    let (success) = IRewardsDistribution.addRewardDistribution(
+        contract_address=rewards_distribution, distribution=distribution
+    );
+
+    assert success = TRUE;
+
+    let (distribution_stored) = IRewardsDistribution.distributions(
+        contract_address=rewards_distribution, index=0
+    );
+    let (distributions_len) = IRewardsDistribution.distributionsLength(
+        contract_address=rewards_distribution
+    );
+
+    assert distribution_stored = distribution;
+    assert distributions_len = 1;
+
+    return ();
+}
+
+@external
+func test_editRewardDistributon{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    local rewards_distribution;
+    local staking_rewards;
+
+    let distribution_amount: Uint256 = Uint256(ONE_MILLION, 0);
+    let new_distribution_amount: Uint256 = Uint256(1000 * 10 ** 18, 0);
+    let distribution: Distribution = Distribution(staking_rewards, distribution_amount);
+    let new_distribution: Distribution = Distribution(staking_rewards, new_distribution_amount);
+    %{
+        ids.rewards_distribution = context.rewards_distribution
+        ids.staking_rewards = context.staking_rewards
+        stop_prank = start_prank(ids.ADMIN, context.rewards_distribution)
+    %}
+    let (success) = IRewardsDistribution.addRewardDistribution(
+        contract_address=rewards_distribution, distribution=distribution
+    );
+
+    assert success = TRUE;
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.ALICE, context.rewards_distribution)
+        expect_revert(error_message="Ownable: caller is not the owner")
+    %}
+    IRewardsDistribution.editRewardDistribution(
+        contract_address=rewards_distribution, index=0, distribution=new_distribution
+    );
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.ADMIN, context.rewards_distribution)
+        expect_revert(error_message="RewardsDistribution: index out of bounds")
+    %}
+    IRewardsDistribution.editRewardDistribution(
+        contract_address=rewards_distribution, index=1, distribution=new_distribution
+    );
+    %{ expect_revert(error_message="RewardsDistribution: invalid destination or amount") %}
+    let invalid_distribution: Distribution = Distribution(staking_rewards, Uint256(0, 0));
+    IRewardsDistribution.editRewardDistribution(
+        contract_address=rewards_distribution, index=0, distribution=invalid_distribution
+    );
+
+    let (success) = IRewardsDistribution.editRewardDistribution(
+        contract_address=rewards_distribution, index=0, distribution=new_distribution
+    );
+    let (distribution_stored) = IRewardsDistribution.distributions(
+        contract_address=rewards_distribution, index=0
+    );
+
+    assert success = TRUE;
+    assert distribution_stored = distribution;
 
     return ();
 }

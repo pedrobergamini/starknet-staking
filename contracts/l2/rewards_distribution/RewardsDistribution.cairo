@@ -88,10 +88,10 @@ func addRewardDistribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range
 
 @external
 func editRewardDistribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-    index: felt, new_distribution: Distribution
+    index: felt, distribution: Distribution
 ) -> (success: felt) {
     Ownable.assert_only_owner();
-    RewardsDistribution.edit_reward_distribution(index, new_distribution);
+    RewardsDistribution.edit_reward_distribution(index, distribution);
 
     return (TRUE,);
 }
