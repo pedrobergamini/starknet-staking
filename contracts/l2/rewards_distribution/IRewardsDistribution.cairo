@@ -30,6 +30,12 @@ namespace IRewardsDistribution {
     //
     // External functions
     //
+    func setAuthority(authority: felt) {
+    }
+
+    func setRewardToken(reward_token: felt) {
+    }
+
     func addRewardDistribution(distribution: Distribution) -> (success: felt) {
     }
 

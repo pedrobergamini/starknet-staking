@@ -57,6 +57,26 @@ func distributionsLength{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_c
 }
 
 @external
+func setAuthority{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    authority: felt
+) {
+    Ownable.assert_only_owner();
+    RewardsDistribution.set_authority(authority);
+
+    return ();
+}
+
+@external
+func setRewardToken{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    reward_token: felt
+) {
+    Ownable.assert_only_owner();
+    RewardsDistribution.set_reward_token(reward_token);
+
+    return ();
+}
+
+@external
 func addRewardDistribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     distribution: Distribution
 ) -> (success: felt) {

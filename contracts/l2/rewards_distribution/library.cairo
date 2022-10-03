@@ -54,7 +54,7 @@ namespace RewardsDistribution {
             assert_not_zero(authority);
             assert_not_zero(reward_token);
         }
-        RewardsDistribution_authority.write(authortiy);
+        RewardsDistribution_authority.write(authority);
         RewardsDistribution_reward_token.write(reward_token);
 
         return ();
@@ -99,14 +99,27 @@ namespace RewardsDistribution {
     //
 
     // @notice Set the address of the contract authorised to call distributeRewards()
-    // @param _authority Address of the authorised calling contract.
+    // @param authority Address of the authorised calling contract.
     func set_authority{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        new_authority_address: felt
+        authority: felt
     ) {
         with_attr error_message("RewardsDistribution: invalid new authority address") {
-            assert_not_zero(new_authority_address);
+            assert_not_zero(authority);
         }
-        RewardsDistribution_authority.write(new_authority_address);
+        RewardsDistribution_authority.write(authority);
+
+        return ();
+    }
+
+    // @notice Set the address of the reward token.
+    // @param reward_token Address of the reward token.
+    func set_reward_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        reward_token: felt
+    ) {
+        with_attr error_message("RewardsDistribution: invalid new reward token") {
+            assert_not_zero(reward_token);
+        }
+        RewardsDistribution_reward_token.write(reward_token);
 
         return ();
     }
