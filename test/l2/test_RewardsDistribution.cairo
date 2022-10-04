@@ -61,7 +61,7 @@ func __setup__{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         ).contract_address
         context.staking_rewards = deploy_contract("contracts/l2/staking/StakingRewards.cairo",
             {
-                "rewards_distribution": ids.ADMIN,
+                "rewards_distribution": context.rewards_distribution,
                 "reward_token": context.reward_token,
                 "staking_token": context.staking_token,
                 "initial_rewards_duration": ids.SEVEN_DAYS,
@@ -231,6 +231,82 @@ func test_editRewardDistributon{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, 
 
     assert success = TRUE;
     assert distribution_stored = distribution;
+
+    return ();
+}
+
+@external
+func test_distributeRewards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    alloc_locals;
+    local rewards_distribution;
+    local staking_rewards;
+    local reward_token;
+
+    let distribution_amount: Uint256 = Uint256(1000 * 10 ** 18, 0);
+    let total_distribution: Uint256 = Uint256(3000 * 10 ** 18, 0);
+    let distribution: Distribution = Distribution(staking_rewards, distribution_amount);
+    %{
+        ids.rewards_distribution = context.rewards_distribution
+        ids.staking_rewards = context.staking_rewards
+        ids.reward_token = context.reward_token
+        stop_prank = start_prank(ids.ADMIN, context.rewards_distribution)
+    %}
+
+    // creates 3 distributions to be done
+    IRewardsDistribution.addRewardDistribution(
+        contract_address=rewards_distribution, distribution=distribution
+    );
+    IRewardsDistribution.addRewardDistribution(
+        contract_address=rewards_distribution, distribution=distribution
+    );
+    IRewardsDistribution.addRewardDistribution(
+        contract_address=rewards_distribution, distribution=distribution
+    );
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.ADMIN, context.reward_token)
+    %}
+    IERC20.transfer(
+        contract_address=reward_token, recipient=rewards_distribution, amount=total_distribution
+    );
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.AUTHORITY, context.rewards_distribution)
+    %}
+    IRewardsDistribution.distributeRewards(
+        contract_address=rewards_distribution, amount=total_distribution
+    );
+    let (staking_reward_balance: Uint256) = IERC20.balanceOf(
+        contract_address=reward_token, account=staking_rewards
+    );
+
+    assert_uint256_eq(staking_reward_balance, total_distribution);
+
+    %{ expect_revert(error_message="RewardsDistribution: amount should be greater than 0") %}
+    IRewardsDistribution.distributeRewards(
+        contract_address=rewards_distribution, amount=Uint256(0, 0)
+    );
+    %{
+        stop_prank()
+        expect_revert(error_message="RewardsDistribution: caller is not authorized")
+        stop_prank = start_prank(ids.ALICE, context.rewards_distribution)
+    %}
+    %{
+    %}
+    IERC20.transfer(
+        contract_address=reward_token, recipient=rewards_distribution, amount=total_distribution
+    );
+    IRewardsDistribution.distributeRewards(
+        contract_address=rewards_distribution, amount=total_distribution
+    );
+    %{
+        stop_prank()
+        expect_revert(error_message="RewardsDistribution: not enough tokens to distribute")
+        stop_prank = start_prank(ids.ADMIN, context.rewards_distribution)
+    %}
+    IRewardsDistribution.distributeRewards(
+        contract_address=rewards_distribution, amount=total_distribution
+    );
 
     return ();
 }

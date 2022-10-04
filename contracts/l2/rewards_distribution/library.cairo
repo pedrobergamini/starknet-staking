@@ -4,8 +4,14 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero, assert_lt
-from starkware.cairo.common.uint256 import Uint256, assert_uint256_lt, assert_uint256_le
+from starkware.cairo.common.uint256 import (
+    Uint256,
+    assert_uint256_lt,
+    assert_uint256_le,
+    assert_uint256_eq,
+)
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
+from openzeppelin.security.safemath.library import SafeUint256
 from contracts.l2.lib.interfaces.IERC20 import IERC20
 from contracts.l2.rewards_distribution.IRewardsDistribution import Distribution
 from contracts.l2.lib.SafeERC20 import SafeERC20
@@ -181,7 +187,13 @@ namespace RewardsDistribution {
         }
 
         let res = distributions_len();
-        _loop_distribute_rewards(reward_token_address, res);
+        let (amount_distributed: Uint256) = _loop_distribute_rewards(
+            reward_token_address, res, Uint256(0, 0)
+        );
+        with_attr error_message(
+                "RewardsDistribution: amount_distributed doesn't match provided amount") {
+            assert_uint256_eq(amount_distributed, amount);
+        }
         LogDistributeRewards.emit(amount);
 
         return ();
@@ -192,10 +204,10 @@ namespace RewardsDistribution {
     //
 
     func _loop_distribute_rewards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        reward_token: felt, distributions_len: felt
-    ) {
+        reward_token: felt, distributions_len: felt, amount_distributed: Uint256
+    ) -> (amount_distributed: Uint256) {
         if (distributions_len == 0) {
-            return ();
+            return (amount_distributed,);
         }
 
         let (distribution: Distribution) = distributions((distributions_len - 1));
@@ -203,7 +215,14 @@ namespace RewardsDistribution {
         IStakingRewards.notifyRewardAmount(
             contract_address=distribution.destination, reward=distribution.amount
         );
+        let (amount_distributed_updated: Uint256) = SafeUint256.add(
+            amount_distributed, distribution.amount
+        );
 
-        return _loop_distribute_rewards(reward_token, (distributions_len - 1));
+        let (total_amount_distributed: Uint256) = _loop_distribute_rewards(
+            reward_token, (distributions_len - 1), amount_distributed_updated
+        );
+
+        return (total_amount_distributed,);
     }
 }
