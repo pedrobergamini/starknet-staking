@@ -392,23 +392,29 @@ func test_claimRewardL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_ch
     test_utils.distributeRewards();
     %{ stop_prank = start_prank(ids.ALICE, context.staking_rewards) %}
     IStakingRewards.stakeL2(contract_address=staking_rewards, amount=stake_value);
-    %{ stop_prank() %}
-    %{ stop_prank = start_prank(ids.BOB, context.staking_rewards) %}
+    %{
+        stop_prank()
+        stop_prank = start_prank(ids.BOB, context.staking_rewards)
+    %}
     IStakingRewards.stakeL2(contract_address=staking_rewards, amount=stake_value);
     let (block_timestamp) = get_block_timestamp();
     %{
         stop_warp = warp(ids.block_timestamp + ids.SEVEN_DAYS, ids.staking_rewards)
-        expect_events({"name": "LogClaimReward", "user": ids.BOB, "reward": ids.expected_rewards, "claimed_to_l1": 0 })
+        expect_revert(error_message="StakingRewards: reward recipient is 0")
     %}
-    let (success) = IStakingRewards.claimRewardL2(contract_address=staking_rewards);
+    IStakingRewards.claimRewardL2(contract_address=staking_rewards, recipient=0);
+    %{ expect_events({"name": "LogClaimReward", "user": ids.BOB, "recipient": ids.BOB, "reward": ids.expected_rewards, "claimed_to_l1": 0 }) %}
+    let (success) = IStakingRewards.claimRewardL2(contract_address=staking_rewards, recipient=BOB);
     assert success = TRUE;
     let (bob_reward_balance) = IERC20.balanceOf(contract_address=reward_token, account=BOB);
     %{
         stop_prank()
         stop_prank = start_prank(ids.ALICE, context.staking_rewards)
-        expect_events({"name": "LogClaimReward", "user": ids.ALICE, "reward": ids.expected_rewards, "claimed_to_l1": 0 })
+        expect_events({"name": "LogClaimReward", "user": ids.ALICE, "recipient": ids.ALICE, "reward": ids.expected_rewards, "claimed_to_l1": 0 })
     %}
-    let (success) = IStakingRewards.claimRewardL2(contract_address=staking_rewards);
+    let (success) = IStakingRewards.claimRewardL2(
+        contract_address=staking_rewards, recipient=ALICE
+    );
     assert success = TRUE;
     let (alice_reward_balance) = IERC20.balanceOf(contract_address=reward_token, account=ALICE);
     let (alice_reward_parsed) = test_utils.uint256_divide_and_ceil(alice_reward_balance);

@@ -489,6 +489,10 @@ namespace StakingRewards {
         recipient: felt
     ) {
         alloc_locals;
+        with_attr error_message("StakingRewards: reward recipient is 0") {
+            let is_valid_recipient = is_not_zero(recipient);
+            assert is_valid_recipient = TRUE;
+        }
         let (caller) = get_caller_address();
         _verify_caller(caller);
         _update_reward(caller);
@@ -513,6 +517,10 @@ namespace StakingRewards {
         recipient: felt
     ) {
         alloc_locals;
+        with_attr error_message("StakingRewards: reward recipient is 0") {
+            let is_valid_recipient = is_not_zero(recipient);
+            assert is_valid_recipient = TRUE;
+        }
         let (caller) = get_caller_address();
         _verify_caller(caller);
         _update_reward(caller);
