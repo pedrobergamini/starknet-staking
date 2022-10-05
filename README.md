@@ -6,7 +6,7 @@
 
 ## Overview
 
-This repo is inspired on (Synthetix's Staking Rewards contract)[https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol], but designed for StarkNet and with extra features to introduce a Cross-Domain rewards earning mechanism. Multiple StakingRewards instances may be deployed and users can stake in order to earn reward tokens either directly in StarkNet, or without having to bridge liquidity to L2 by using the `StakingBridge` L1 contract. Using this design, developers are able to onboard L1 users and liquidity to L2 with less barriers compared to allowing only L2 tokens to be used in the system.
+This repo is inspired on [Synthetix's Staking Rewards contract](https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol) but designed for StarkNet and with extra features to introduce a Cross-Domain rewards earning mechanism. Multiple StakingRewards instances may be deployed and users can stake in order to earn reward tokens either directly in StarkNet, or without having to bridge liquidity to L2 by using the `StakingBridge` L1 contract. Using this design, developers are able to onboard L1 users and liquidity to L2 with less barriers compared to allowing only L2 tokens to be used in the system.
 
 ## Architecture
 
