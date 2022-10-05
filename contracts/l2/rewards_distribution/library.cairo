@@ -52,7 +52,6 @@ func RewardsDistribution_distributions_len() -> (res: felt) {
 }
 
 namespace RewardsDistribution {
-    // @notice RewardsDistribution initializer
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         authority: felt, reward_token: felt
     ) {
@@ -104,8 +103,6 @@ namespace RewardsDistribution {
     // Mutative public functions
     //
 
-    // @notice Set the address of the contract authorised to call distributeRewards()
-    // @param authority Address of the authorised calling contract.
     func set_authority{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         authority: felt
     ) {
@@ -117,8 +114,6 @@ namespace RewardsDistribution {
         return ();
     }
 
-    // @notice Set the address of the reward token.
-    // @param reward_token Address of the reward token.
     func set_reward_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         reward_token: felt
     ) {
