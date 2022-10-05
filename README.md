@@ -10,7 +10,7 @@ This repo is inspired on (Synthetix's Staking Rewards contract)[https://github.c
 
 ## Architecture
 
-[]
+# <img src="architecture.png" alt="Architecture">
 
 ## Contracts
 
