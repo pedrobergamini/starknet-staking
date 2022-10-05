@@ -38,4 +38,88 @@ However, note that L1 users and L2 users flows are separated through the `stakeL
 
 ### Claiming rewards
 
-Both claim reward functions, `claimRewardL1` and `claimRewardL2`, can be used by both L1 and L2 users. Differently from stake and withdraw functions, rewards claiming function have been slightly redesign from Syntehtix's model in away that both users supported by the application design can claim the rewards directly to the preferred domain using any arbitrary recipient. This solves the potential issue of a user having different wallet addresses in L1 and L2 using different formats.
+Both claim reward functions, `claimRewardL1` and `claimRewardL2`, can be used by both L1 and L2 users. Differently from stake and withdraw functions, rewards claiming function have been slightly redesigned from Syntehtix's model in away that both users supported by the application can claim the rewards directly to the preferred domain using any arbitrary recipient. This solves the potential issue of a user having different wallet addresses in L1 and L2 using different formats.
+
+When rewards claimed to L1, L2 tokens are burnt and minted by the StakingBridge contract. Hence the ERC20 reward token must be mintable and allow the StakingBridge to mint new tokens in L1.
+
+### Rewards Distribution
+
+The `RewardsDistribution`contract handles the creation of new `Distribution` structs and only requires **one** deployed instance. Each `Distribution` contains the destination address and the amount of reward tokens being sent, so the `RewardsDistribution_authority` address is able to prepare multiple distributions for all staking rewards pools and dispatch all of them in one single `distributeRewards` call. Rewards distribution are expected to be ran by the authority address and admin operations are executed by the contract's `Ownable` owner.
+
+## Installation and execution
+
+### Requirements
+
+- [Node.js](https://github.com/nvm-sh/nvm)
+- [Python](https://docs.python.org/3/using/index.html)
+- [Cairo and StarkNet environment](https://starknet.io/docs/quickstart.html)
+- [Yarn](https://yarnpkg.com/)
+- [Protostar](https://docs.swmansion.com/protostar/docs/tutorials/installation)
+
+### Environment
+
+**Install Node dependencies**
+
+Let's install all our project dependencies:
+
+```bash
+yarn install
+```
+
+### Build L1 Contracts
+
+Hardhat is used for compiling and testing L1 contracts
+
+```bash
+yarn compile:l1
+```
+
+### Build L2 Contracts
+
+StarkNet contracts can be compiled either by using the `starknet-hardhat-plugin` or `protostar`
+
+```bash
+yarn compile:l2
+```
+
+```bash
+protostar build
+```
+
+### Start testnets
+
+We recommend to run L1 and L2 testnets in different terminals.
+
+**Start L2 testnet**
+
+We're using the active environment, but you can switch to a venv config and run:
+
+```bash
+yarn testnet:l2
+```
+
+**Start L1 testnet**
+
+Start a L1 testnet by running:
+
+```bash
+yarn testnet:l1
+```
+
+### Run tests
+
+L2 contracts are tested using [Protostar](https://docs.swmansion.com/protostar/docs/tutorials/testing), which allows writing Cairo test files and are present inside the `test/l2/**` directory.
+
+Run L2 tests:
+
+```bash
+protostar test
+```
+
+L1 tests use `starknet-devnet` and the `starknet-hardhat-plugin` in order to verify the messaging operations. Initialize in two terminal windows the `l1_testnet` and `l2_testnet` networks, and then run:
+
+```bash
+yarn test
+```
+
+Contributions are welcome by picking any open issue or simply creating a new one, this repo is still under improvements and is open to any suggestions/feature requests.
