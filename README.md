@@ -1,6 +1,6 @@
 # StarkNet Staking Rewards Template
 
-# <img src="logo.png" alt="Cross-Domain Staking Rewards" height="180px">
+# <img src="logo.png" alt="Cross-Domain Staking Rewards">
 
 _WARNING: This repo hasn't been audited and still isn't fully covered with tests._
 
