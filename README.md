@@ -68,7 +68,7 @@ yarn install
 
 ### Build L1 Contracts
 
-Hardhat is used for compiling and testing L1 contracts
+Hardhat is used for compiling and testing L1 contracts:
 
 ```bash
 yarn compile:l1
@@ -76,7 +76,7 @@ yarn compile:l1
 
 ### Build L2 Contracts
 
-StarkNet contracts can be compiled either by using the `starknet-hardhat-plugin` or `protostar`
+StarkNet contracts can be compiled either by using the `starknet-hardhat-plugin` or `protostar`:
 
 ```bash
 yarn compile:l2
