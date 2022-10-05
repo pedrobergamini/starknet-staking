@@ -22,9 +22,9 @@ from contracts.l2.lib.SafeERC20 import SafeERC20
 // Constants
 //
 
-// @dev message id emitted by withdrawL1
+// @dev message id sent by withdrawL1
 const WITHDRAW_MESSAGE = 1;
-// @dev message id emitted by claimRewardL1
+// @dev message id sent by claimRewardL1
 const CLAIM_REWARD_MESSAGE = 2;
 // @dev Base rewards calculation multiplier, used for divisions
 const BASE_MULTIPLIER = 10 ** 18;

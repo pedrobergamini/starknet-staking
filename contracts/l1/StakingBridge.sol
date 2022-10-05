@@ -17,9 +17,9 @@ contract StakingBridge {
     /// @dev L2 staking address
     uint256 public staking;
 
-    // TODO: calculate correct cairo fn selectors
-    /// @dev `stake_l1` cairo function selector
-    uint256 public constant STAKE_L1_SELECTOR = 1;
+    /// @dev `stakeL1` StarkNet function selector
+    /// @dev Computed with `starknetKeccak("stakeL1")`
+    uint256 public constant STAKE_L1_SELECTOR = 0x310825e0f3725d80b141f53c613cfea59901b2fb68ab710e53c39da41c26ca2;
     /// @dev Starknet contract withdraw message
     uint256 public constant WITHDRAW_MESSAGE = 1;
     /// @dev Starknet contract claim reward message
