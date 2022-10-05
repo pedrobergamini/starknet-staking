@@ -2,7 +2,7 @@
 
 # <img src="logo.png" alt="Cross-Domain Staking Rewards">
 
-_WARNING: This repo hasn't been audited and still isn't fully covered with tests._
+**WARNING: This repo hasn't been audited and still isn't fully covered with tests.**
 
 ## Overview
 
