@@ -14,7 +14,7 @@ from starkware.starknet.common.syscalls import (
     get_contract_address,
 )
 from starkware.starknet.common.messages import send_message_to_l1
-from contracts.l2.openzeppelin.security.safemath.library import SafeUint256
+from openzeppelin.security.safemath.library import SafeUint256
 from contracts.l2.lib.interfaces.IERC20 import IERC20
 from contracts.l2.lib.SafeERC20 import SafeERC20
 
@@ -22,10 +22,13 @@ from contracts.l2.lib.SafeERC20 import SafeERC20
 // Constants
 //
 
-// @dev Base rewards calculation multiplier, used for divisions
+// @dev message id sent by withdrawL1
 const WITHDRAW_MESSAGE = 1;
+// @dev message id sent by claimRewardL1
 const CLAIM_REWARD_MESSAGE = 2;
+// @dev Base rewards calculation multiplier, used for divisions
 const BASE_MULTIPLIER = 10 ** 18;
+// @dev Max uint256 felt member
 const MAX_UINT256_MEMBER = 2 ** 128 - 1;
 
 //
@@ -40,7 +43,7 @@ func LogWithdraw(user: felt, amount: Uint256, withdrawn_to_l1: felt) {
 }
 
 @event
-func LogClaimReward(user: felt, reward: Uint256, claimed_to_l1: felt) {
+func LogClaimReward(user: felt, recipient: felt, reward: Uint256, claimed_to_l1: felt) {
 }
 
 @event
@@ -95,7 +98,7 @@ func StakingRewards_rewards_duration() -> (duration: felt) {
 }
 
 @storage_var
-func StakingRewards_period_finish() -> (when: felt) {
+func StakingRewards_period_finish() -> (period_finish: felt) {
 }
 
 @storage_var
@@ -119,18 +122,22 @@ func StakingRewards_l1_users(user: felt) -> (is_l1_user: felt) {
 }
 
 namespace StakingRewards {
-    // @notice StakingRewards initializer
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        rewards_distribution: felt, reward_token: felt, staking_token: felt
+        rewards_distribution: felt,
+        reward_token: felt,
+        staking_token: felt,
+        initial_rewards_duration: felt,
     ) {
         with_attr error_message("StakingRewards: invalid initialization parameters") {
             assert_not_zero(rewards_distribution);
             assert_not_zero(reward_token);
             assert_not_zero(staking_token);
+            assert_not_zero(initial_rewards_duration);
         }
         StakingRewards_rewards_distribution.write(rewards_distribution);
         StakingRewards_reward_token.write(reward_token);
         StakingRewards_staking_token.write(staking_token);
+        StakingRewards_rewards_duration.write(initial_rewards_duration);
 
         return ();
     }
@@ -154,7 +161,7 @@ namespace StakingRewards {
     }
 
     func earned{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt) -> (
-        reward_earned: Uint256
+        reward: Uint256
     ) {
         alloc_locals;
         with_attr error_message("StakingRewards: invalid account") {
@@ -166,7 +173,7 @@ namespace StakingRewards {
         let (reward_per_token_paid: Uint256) = StakingRewards_reward_per_token_paid.read(account);
         let (accumulated_rewards_stored: Uint256) = StakingRewards_rewards.read(account);
 
-        let (reward_per_token_delta: Uint256) = SafeUint256.sub_lt(
+        let (reward_per_token_delta: Uint256) = SafeUint256.sub_le(
             current_reward_per_token, reward_per_token_paid
         );
         let (is_delta_zero) = uint256_eq(reward_per_token_delta, Uint256(0, 0));
@@ -174,9 +181,11 @@ namespace StakingRewards {
             return (accumulated_rewards_stored,);
         }
 
+        let (accrued_rewards) = SafeUint256.mul(account_balance, reward_per_token_delta);
         let (accrued_rewards_normalized: Uint256, _) = SafeUint256.div_rem(
-            reward_per_token_delta, Uint256(BASE_MULTIPLIER, 0)
+            accrued_rewards, Uint256(BASE_MULTIPLIER, 0)
         );
+
         let (total_rewards: Uint256) = SafeUint256.add(
             accrued_rewards_normalized, accumulated_rewards_stored
         );
@@ -253,6 +262,27 @@ namespace StakingRewards {
         return token;
     }
 
+    func period_finish{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> felt {
+        let (res) = StakingRewards_period_finish.read();
+
+        return res;
+    }
+
+    func reward_rate{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> (
+        res: Uint256
+    ) {
+        let (res) = StakingRewards_reward_rate.read();
+
+        return (res,);
+    }
+
+    func rewards_duration{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        ) -> felt {
+        let (res) = StakingRewards_rewards_duration.read();
+
+        return res;
+    }
+
     func staking_bridge_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         ) -> felt {
         let (res) = StakingRewards_staking_bridge_l1.read();
@@ -311,7 +341,7 @@ namespace StakingRewards {
     func recover_erc20{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         token: felt, receiver: felt, amount: Uint256
     ) {
-        let res = reward_token();
+        let res = staking_token();
         with_attr error_message("StakingRewards: Cannot recover staking token") {
             assert_not_equal(res, token);
         }
@@ -338,7 +368,7 @@ namespace StakingRewards {
         let (duration) = StakingRewards_rewards_duration.read();
         let is_period_finished = is_le(period_finish, block_timestamp);
         let (reward_rate_stored) = StakingRewards_reward_rate.read();
-        local current_reward_rate_ptr: Uint256*;
+        let (current_reward_rate_ptr: Uint256*) = alloc();
 
         if (is_period_finished == TRUE) {
             let (new_reward_rate: Uint256, _) = SafeUint256.div_rem(reward, Uint256(duration, 0));
@@ -392,9 +422,7 @@ namespace StakingRewards {
         _stake(caller, amount);
         let staking_token_address = staking_token();
         let (this_contract) = get_contract_address();
-        SafeERC20.safe_transfer_from(
-            token=staking_token_address, sender=caller, recipient=this_contract, amount=amount
-        );
+        SafeERC20.safe_transfer_from(staking_token_address, caller, this_contract, amount);
         LogStake.emit(caller, amount, FALSE);
 
         return ();
@@ -407,7 +435,6 @@ namespace StakingRewards {
         _stake(l1_user, amount);
         let staking_token_address = staking_token();
         let (this_contract) = get_contract_address();
-        IERC20.mint(contract_address=staking_token_address, to=this_contract, amount=amount);
         StakingRewards_l1_users.write(l1_user, TRUE);
         LogStake.emit(l1_user, amount, TRUE);
 
@@ -420,7 +447,10 @@ namespace StakingRewards {
         alloc_locals;
         let (caller) = get_caller_address();
         _verify_caller(caller);
-
+        let (is_l1_user) = StakingRewards_l1_users.read(caller);
+        with_attr error_message("Staking Rewards: {user} is a l1 user") {
+            assert is_l1_user = FALSE;
+        }
         _withdraw(caller, amount);
         let staking_token_address = staking_token();
         SafeERC20.safe_transfer(staking_token_address, caller, amount);
@@ -435,10 +465,12 @@ namespace StakingRewards {
         alloc_locals;
         let (caller) = get_caller_address();
         _verify_caller(caller);
-
+        let (is_l1_user) = StakingRewards_l1_users.read(caller);
+        with_attr error_message("Staking Rewards: {user} is a l2 user") {
+            assert is_l1_user = TRUE;
+        }
         _withdraw(caller, amount);
         let staking_token_address = staking_token();
-        IERC20.burn(contract_address=staking_token_address, amount=amount);
         let (message_payload: felt*) = alloc();
         let staking_bridge_l1_address = staking_bridge_l1();
         assert message_payload[0] = WITHDRAW_MESSAGE;
@@ -453,8 +485,14 @@ namespace StakingRewards {
         return ();
     }
 
-    func claim_rewards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    func claim_reward_l2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        recipient: felt
+    ) {
         alloc_locals;
+        with_attr error_message("StakingRewards: reward recipient is 0") {
+            let is_valid_recipient = is_not_zero(recipient);
+            assert is_valid_recipient = TRUE;
+        }
         let (caller) = get_caller_address();
         _verify_caller(caller);
         _update_reward(caller);
@@ -468,14 +506,21 @@ namespace StakingRewards {
         let reward_token_address = reward_token();
 
         StakingRewards_rewards.write(caller, Uint256(0, 0));
-        SafeERC20.safe_transfer(reward_token_address, caller, pending_reward);
+        SafeERC20.safe_transfer(reward_token_address, recipient, pending_reward);
 
-        LogClaimReward.emit(caller, pending_reward, FALSE);
+        LogClaimReward.emit(caller, recipient, pending_reward, FALSE);
+
         return ();
     }
 
-    func claim_reward_to_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    func claim_reward_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        recipient: felt
+    ) {
         alloc_locals;
+        with_attr error_message("StakingRewards: reward recipient is 0") {
+            let is_valid_recipient = is_not_zero(recipient);
+            assert is_valid_recipient = TRUE;
+        }
         let (caller) = get_caller_address();
         _verify_caller(caller);
         _update_reward(caller);
@@ -498,31 +543,35 @@ namespace StakingRewards {
         let staking_bridge_l1_address = staking_bridge_l1();
         let (message_payload: felt*) = alloc();
         assert message_payload[0] = CLAIM_REWARD_MESSAGE;
-        assert message_payload[1] = caller;
+        assert message_payload[1] = recipient;
         assert message_payload[2] = pending_reward.low;
         assert message_payload[3] = pending_reward.high;
         send_message_to_l1(
             to_address=staking_bridge_l1_address, payload_size=4, payload=message_payload
         );
-        LogClaimReward.emit(caller, pending_reward, TRUE);
+        LogClaimReward.emit(caller, recipient, pending_reward, TRUE);
 
         return ();
     }
 
-    func exit_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    func exit_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        reward_recipient: felt
+    ) {
         let (caller) = get_caller_address();
         let (user_balance: Uint256) = StakingRewards_balances.read(caller);
         withdraw_l1(user_balance);
-        claim_reward_to_l1();
+        claim_reward_l1(reward_recipient);
 
         return ();
     }
 
-    func exit_l2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
+    func exit_l2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        reward_recipient: felt
+    ) {
         let (caller) = get_caller_address();
         let (user_balance: Uint256) = StakingRewards_balances.read(caller);
         withdraw_l2(user_balance);
-        claim_rewards();
+        claim_reward_l2(reward_recipient);
 
         return ();
     }

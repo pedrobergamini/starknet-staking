@@ -4,8 +4,14 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero, assert_lt
-from starkware.cairo.common.uint256 import Uint256, assert_uint256_lt, assert_uint256_le
+from starkware.cairo.common.uint256 import (
+    Uint256,
+    assert_uint256_lt,
+    assert_uint256_le,
+    assert_uint256_eq,
+)
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
+from openzeppelin.security.safemath.library import SafeUint256
 from contracts.l2.lib.interfaces.IERC20 import IERC20
 from contracts.l2.rewards_distribution.IRewardsDistribution import Distribution
 from contracts.l2.lib.SafeERC20 import SafeERC20
@@ -46,14 +52,15 @@ func RewardsDistribution_distributions_len() -> (res: felt) {
 }
 
 namespace RewardsDistribution {
-    // @notice RewardsDistribution initializer
     func initializer{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        authority_address: felt
+        authority: felt, reward_token: felt
     ) {
         with_attr error_message("RewardsDistribution: invalid initialization parameters") {
-            assert_not_zero(authority_address);
+            assert_not_zero(authority);
+            assert_not_zero(reward_token);
         }
-        RewardsDistribution_authority.write(authority_address);
+        RewardsDistribution_authority.write(authority);
+        RewardsDistribution_reward_token.write(reward_token);
 
         return ();
     }
@@ -96,15 +103,24 @@ namespace RewardsDistribution {
     // Mutative public functions
     //
 
-    // @notice Set the address of the contract authorised to call distributeRewards()
-    // @param _authority Address of the authorised calling contract.
     func set_authority{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        new_authority_address: felt
+        authority: felt
     ) {
         with_attr error_message("RewardsDistribution: invalid new authority address") {
-            assert_not_zero(new_authority_address);
+            assert_not_zero(authority);
         }
-        RewardsDistribution_authority.write(new_authority_address);
+        RewardsDistribution_authority.write(authority);
+
+        return ();
+    }
+
+    func set_reward_token{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        reward_token: felt
+    ) {
+        with_attr error_message("RewardsDistribution: invalid new reward token") {
+            assert_not_zero(reward_token);
+        }
+        RewardsDistribution_reward_token.write(reward_token);
 
         return ();
     }
@@ -125,14 +141,18 @@ namespace RewardsDistribution {
     }
 
     func edit_reward_distribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        index: felt, new_distribution: Distribution
+        index: felt, distribution: Distribution
     ) {
         let current_distributions_index = distributions_len();
         with_attr error_message("RewardsDistribution: index out of bounds") {
             assert_lt(index, current_distributions_index);
         }
-        RewardsDistribution_distributions.write(index, new_distribution);
-        LogEditRewardDistribution.emit(index, new_distribution);
+        with_attr error_message("RewardsDistribution: invalid destination or amount") {
+            assert_not_zero(distribution.destination);
+            assert_uint256_lt(Uint256(0, 0), distribution.amount);
+        }
+        RewardsDistribution_distributions.write(index, distribution);
+        LogEditRewardDistribution.emit(index, distribution);
 
         return ();
     }
@@ -162,7 +182,13 @@ namespace RewardsDistribution {
         }
 
         let res = distributions_len();
-        _loop_distribute_rewards(reward_token_address, res);
+        let (amount_distributed: Uint256) = _loop_distribute_rewards(
+            reward_token_address, res, Uint256(0, 0)
+        );
+        with_attr error_message(
+                "RewardsDistribution: amount_distributed doesn't match provided amount") {
+            assert_uint256_eq(amount_distributed, amount);
+        }
         LogDistributeRewards.emit(amount);
 
         return ();
@@ -173,10 +199,10 @@ namespace RewardsDistribution {
     //
 
     func _loop_distribute_rewards{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        reward_token: felt, distributions_len: felt
-    ) {
+        reward_token: felt, distributions_len: felt, amount_distributed: Uint256
+    ) -> (amount_distributed: Uint256) {
         if (distributions_len == 0) {
-            return ();
+            return (amount_distributed,);
         }
 
         let (distribution: Distribution) = distributions((distributions_len - 1));
@@ -184,7 +210,14 @@ namespace RewardsDistribution {
         IStakingRewards.notifyRewardAmount(
             contract_address=distribution.destination, reward=distribution.amount
         );
+        let (amount_distributed_updated: Uint256) = SafeUint256.add(
+            amount_distributed, distribution.amount
+        );
 
-        return _loop_distribute_rewards(reward_token, (distributions_len - 1));
+        let (total_amount_distributed: Uint256) = _loop_distribute_rewards(
+            reward_token, (distributions_len - 1), amount_distributed_updated
+        );
+
+        return (total_amount_distributed,);
     }
 }

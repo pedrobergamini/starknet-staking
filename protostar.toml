@@ -1,0 +1,24 @@
+["protostar.config"]
+protostar_version = "0.4.2"
+
+["protostar.project"]
+libs_path = "lib"
+
+["protostar.build"]
+cairo-path = [
+  "lib/cairo_contracts/src"
+]
+
+["protostar.test"]
+cairo-path = [
+  "lib/cairo_contracts/src",
+  "test/l2"
+]
+
+["protostar.contracts"]
+StakingRewards = [
+    "contracts/l2/staking/StakingRewards.cairo",
+]
+RewardsDistribution = [
+  "contracts/l2/rewards_distribution/RewardsDistribution.cairo"
+]

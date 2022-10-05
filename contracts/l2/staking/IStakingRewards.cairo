@@ -27,10 +27,19 @@ namespace IStakingRewards {
     func rewardsDistribution() -> (contract_address: felt) {
     }
 
+    func rewardToken() -> (token: felt) {
+    }
+
     func stakingToken() -> (token: felt) {
     }
 
-    func rewardToken() -> (token: felt) {
+    func periodFinish() -> (res: felt) {
+    }
+
+    func rewardRate() -> (res: Uint256) {
+    }
+
+    func rewardsDuration() -> (res: felt) {
     }
 
     func stakingBridgeL1() -> (res: felt) {
@@ -63,18 +72,18 @@ namespace IStakingRewards {
     func withdrawL2(amount: Uint256) -> (success: felt) {
     }
 
-    func withdrawL1(l1_user: felt, amount: Uint256) {
+    func withdrawL1(amount: Uint256) {
     }
 
-    func claimReward() -> (success: felt) {
+    func claimRewardL2(recipient: felt) -> (success: felt) {
     }
 
-    func claimRewardToL1() -> (success: felt) {
+    func claimRewardL1(recipient: felt) -> (success: felt) {
     }
 
-    func exitL2() -> (success: felt) {
+    func exitL2(reward_recipient: felt) -> (success: felt) {
     }
 
-    func exitL1(l1_user: felt) {
+    func exitL1(reward_recipient: felt) {
     }
 }
