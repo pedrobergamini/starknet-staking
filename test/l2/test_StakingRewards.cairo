@@ -452,7 +452,7 @@ func test_exitL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
         stop_warp = warp(ids.block_timestamp + ids.SEVEN_DAYS, ids.staking_rewards)
         expect_events({"name": "LogClaimReward", "user": ids.BOB, "reward": ids.expected_rewards, "claimed_to_l1": 0 },{"name": "LogWithdraw", "user": ids.BOB, "amount": ids.stake_value, "withdrawn_to_l1": 0})
     %}
-    let (success) = IStakingRewards.exitL2(contract_address=staking_rewards);
+    let (success) = IStakingRewards.exitL2(contract_address=staking_rewards, reward_recipient=BOB);
     assert success = TRUE;
     let (bob_reward_balance) = IERC20.balanceOf(contract_address=reward_token, account=BOB);
     %{
@@ -460,7 +460,9 @@ func test_exitL2{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
         stop_prank = start_prank(ids.ALICE, context.staking_rewards)
         expect_events({"name": "LogClaimReward", "user": ids.ALICE, "reward": ids.expected_rewards, "claimed_to_l1": 0 }, {"name": "LogWithdraw", "user": ids.ALICE, "amount": ids.stake_value, "withdrawn_to_l1": 0})
     %}
-    let (success) = IStakingRewards.exitL2(contract_address=staking_rewards);
+    let (success) = IStakingRewards.exitL2(
+        contract_address=staking_rewards, reward_recipient=ALICE
+    );
     assert success = TRUE;
     let (alice_reward_balance) = IERC20.balanceOf(contract_address=reward_token, account=ALICE);
     let (alice_reward_parsed) = test_utils.uint256_divide_and_ceil(alice_reward_balance);
