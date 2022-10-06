@@ -2,20 +2,21 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { toUint256 } from "../utils";
+import {
+  CLAIM_REWARD_MESSAGE,
+  DEFAULT_TIMEOUT,
+  MOCK_STAKING_L2_ADDRESS,
+  ONE_MILLION,
+  STAKE_AMOUNT,
+  STARKNET_STAKE_L1_SELECTOR,
+  WITHDRAW_MESSAGE,
+} from "../utils";
 
 const {
   utils: { parseEther },
   constants: { MaxUint256 },
   BigNumber,
 } = ethers;
-const ONE_MILLION = 1000000;
-const DEFAULT_TIMEOUT = 300000;
-const TOKEN_UNIT = BigInt(10 ** 18);
-const MOCK_STAKING_L2_ADDRESS = 999;
-const STAKE_AMOUNT = parseEther("1000");
-const STARKNET_STAKE_L1_SELECTOR = "0x310825e0f3725d80b141f53c613cfea59901b2fb68ab710e53c39da41c26ca2";
-const WITHDRAW_MESSAGE = 1;
-const CLAIM_REWARD_MESSAGE = 2;
 
 describe("StakingBridge", async function () {
   this.timeout(DEFAULT_TIMEOUT);
