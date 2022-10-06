@@ -5,6 +5,8 @@ import { IStarknetMessaging } from "./starknet/core/interfaces/IStarknetMessagin
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
 
+import "hardhat/console.sol";
+
 contract StakingBridge {
     using SafeERC20 for IERC20;
 
@@ -28,9 +30,9 @@ contract StakingBridge {
     /// `bytes4(keccak256(consumeMessageFromL2(uint256,uint256[])))` selector
     uint256 internal constant CONSUME_MESSAGE_SELECTOR = 0xcd26351a;
 
-    event LogStake(address user, uint256 amount);
-    event LogWithdraw(address user, uint256 amount);
-    event LogClaimReward(address user, uint256 amount);
+    event LogStake(address indexed user, uint256 amount);
+    event LogWithdraw(address indexed user, uint256 amount);
+    event LogClaimReward(address indexed user, uint256 amount);
 
     constructor(
         IStarknetMessaging _starknet,
@@ -56,8 +58,10 @@ contract StakingBridge {
 
         uint256[] memory payload = new uint256[](3);
         payload[0] = uint256(uint160(msg.sender));
-        payload[1] = _amount & (1 << (128 - 1));
+        payload[1] = _amount & ((1 << 128) - 1);
         payload[2] = _amount >> 128;
+
+        console.log(payload[0], payload[1], payload[2], _amount);
 
         stakingToken.safeTransferFrom(msg.sender, address(this), _amount);
         starknet.sendMessageToL2(staking, STAKE_L1_SELECTOR, payload);
