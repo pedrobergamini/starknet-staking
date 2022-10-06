@@ -1,5 +1,4 @@
 import "@nomicfoundation/hardhat-toolbox";
-import "@shardlabs/starknet-hardhat-plugin";
 import { config as dotenvConfig } from "dotenv";
 import type { HardhatUserConfig } from "hardhat/config";
 import type { NetworkUserConfig } from "hardhat/types";
@@ -63,9 +62,6 @@ const config: HardhatUserConfig = {
       },
       chainId: chainIds.hardhat,
     },
-    l2_testnet: {
-      url: "http://localhost:5050",
-    },
     goerli: getChainConfig("goerli"),
     mainnet: getChainConfig("mainnet"),
   },
@@ -74,7 +70,6 @@ const config: HardhatUserConfig = {
     cache: "./cache",
     sources: "./contracts/l1",
     tests: "./test",
-    starknetSources: "./contracts/l2",
   },
   solidity: {
     version: "0.8.15",
@@ -95,11 +90,6 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: "src/types",
     target: "ethers-v5",
-  },
-  starknet: {
-    // uses current activated venv or global installation
-    venv: "active",
-    network: "l2_testnet",
   },
 };
 
