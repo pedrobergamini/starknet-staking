@@ -1,80 +1,151 @@
 import { expect } from "chai";
-import { ethers, network, starknet } from "hardhat";
-import { starknet  } from "starknet"
-import { starknetKeccak, getSelectorFromName } from "starknet/dist/utils/hash";
+import { ethers } from "hardhat";
+
+import { toUint256 } from "../utils";
+import {
+  CLAIM_REWARD_MESSAGE,
+  DEFAULT_TIMEOUT,
+  MOCK_STAKING_L2_ADDRESS,
+  ONE_MILLION,
+  STAKE_AMOUNT,
+  STARKNET_STAKE_L1_SELECTOR,
+  WITHDRAW_MESSAGE,
+} from "../utils";
 
 const {
   utils: { parseEther },
+  constants: { MaxUint256 },
+  BigNumber,
 } = ethers;
-const ONE_MILLION = 1000000;
-const DEFAULT_TIMEOUT = 30000;
-const TOKEN_UNIT = BigInt(10 ** 18);
-const networkUrl = "http://127.0.0.1:8545";
 
 describe("StakingBridge", async function () {
-  // this.timeout(DEFAULT_TIMEOUT);
-
+  this.timeout(DEFAULT_TIMEOUT);
 
   before(async function () {
-    const stakeL1 = getSelectorFromName("stakeL1")
-    const withdrawL1 = getSelectorFromName("withdrawL1")
-    const claimRewardL1 = getSelectorFromName("claimRewardL1")
+    const [l1Admin, l1Alice, l1Bob] = await ethers.getSigners();
 
-    console.log(stakeL1, withdrawL1, claimRewardL1);
-  //   const [l1Admin, l1Alice, l1Bob] = await ethers.getSigners();
-  //   this.starknetMessagingAddress = (await starknet.devnet.loadL1MessagingContract(networkUrl)).address;
-  //   const l2Admin = await starknet.deployAccount("OpenZeppelin");
-  //   const l2Alice = await starknet.deployAccount("OpenZeppelin");
-  //   const l2Bob = await starknet.deployAccount("OpenZeppelin");
-  //   console.log(l2Admin.starknetContract.address);
-  //   this.l1Signers = {
-  //     admin: l1Admin,
-  //     alice: l1Alice,
-  //     bob: l1Bob,
-  //   };
-  //   this.l2Signers = {
-  //     admin: l2Admin,
-  //     alice: l2Alice,
-  //     bob: l2Bob,
-  //   };
-  //   this.StakingBridge = await ethers.getContractFactory("StakingBridge");
-  //   this.L1ERC20 = await ethers.getContractFactory("ERC20Mock");
-  //   this.L2ERC20 = await starknet.getContractFactory("contracts/l2/openzeppelin/token/erc20/presets/ERC20");
-  //   this.RewardsDistribution = await starknet.getContractFactory(
-  //     "contracts/l2/rewards_distribution/RewardsDistribution",
-  //   );
-  //   this.StakingRewards = await starknet.getContractFactory("contracts/l2/staking/StakingRewards");
-  //   this.starknetMessagingAddress = (await starknet.devnet.loadL1MessagingContract(networkUrl)).address;
-  // });
-  // beforeEach(async function () {
-  //   this.l1StakingToken = await this.L1ERC20.deploy("Staking Token", "STK", parseEther(ONE_MILLION.toString()));
-  //   this.l1RewardToken = await this.L1ERC20.deploy("Reward Token", "RWD", parseEther(ONE_MILLION.toString()));
-  //   this.l2StakingToken = await this.L2ERC20.deploy({
-  //     name: BigInt(123),
-  //     symbol: BigInt(1234),
-  //     decimals: BigInt(18),
-  //     initial_supply: { high: BigInt(0), low: BigInt(ONE_MILLION) * TOKEN_UNIT },
-  //     recipient: BigInt(this.l2Signers.admin.address),
-  //   });
-  //   this.rewardsDistribution = await this.RewardsDistribution.deploy({
-  //     authority: BigInt(this.l2Signers.admin.address),
-  //     owner: BigInt(this.l2Signers.admin.address),
-  //   });
-  //   this.stakingRewards = await this.StakingRewards.deploy({
-  //     rewards_distribution: this.rewardsDistribution.address,
-  //     reward_token: BigInt(this.l2RewardToken.address),
-  //     staking_token: BigInt(this.l2StakingToken.address),
-  //     owner: BigInt(this.l2Signers.admin.address),
-  //   });
-  //   this.stakingBridge = await this.StakingBridge.deploy(
-  //     this.starknetMessagingAddress,
-  //     this.stakingToken.address,
-  //     this.rewardToken.address,
-  //     BigInt(this.stakingRewards.address),
-  //   );
-   });
-  it("should work", async function () {
-    // const x = await starknet.devnet.loadL1MessagingContract(networkUrl);
-    console.log("hi");
+    this.signers = {
+      admin: l1Admin,
+      alice: l1Alice,
+      bob: l1Bob,
+    };
+    this.StakingBridge = await ethers.getContractFactory("StakingBridge");
+    this.ERC20 = await ethers.getContractFactory("ERC20Mock");
+    this.StarknetMessaging = await ethers.getContractFactory("StarknetMessagingMock");
+  });
+  beforeEach(async function () {
+    this.stakingToken = await this.ERC20.deploy("Staking Token", "STK", parseEther(ONE_MILLION.toString()));
+    this.rewardToken = await this.ERC20.deploy("Reward Token", "RWD", parseEther(ONE_MILLION.toString()));
+    this.starknetMessaging = await this.StarknetMessaging.deploy();
+    this.stakingBridge = await this.StakingBridge.deploy(
+      this.starknetMessaging.address,
+      this.stakingToken.address,
+      this.rewardToken.address,
+      MOCK_STAKING_L2_ADDRESS,
+    );
+
+    await this.stakingToken.connect(this.signers.admin).transfer(this.signers.alice.address, parseEther("100000"));
+    await this.stakingToken.connect(this.signers.admin).transfer(this.signers.bob.address, parseEther("100000"));
+
+    await this.stakingToken.connect(this.signers.alice).approve(this.stakingBridge.address, MaxUint256);
+    await this.stakingToken.connect(this.signers.bob).approve(this.stakingBridge.address, MaxUint256);
+  });
+  it("should stake tokens to L2", async function () {
+    const stakeTx = await this.stakingBridge.connect(this.signers.alice).stake(STAKE_AMOUNT);
+    await expect(stakeTx).to.emit(this.stakingBridge, "LogStake").withArgs(this.signers.alice.address, STAKE_AMOUNT);
+    const uint256StakeAmount = toUint256(STAKE_AMOUNT);
+
+    await this.starknetMessaging.mockConsumeMessageToL2(
+      BigNumber.from(this.stakingBridge.address),
+      BigNumber.from(MOCK_STAKING_L2_ADDRESS),
+      BigNumber.from(STARKNET_STAKE_L1_SELECTOR),
+      [
+        BigNumber.from(this.signers.alice.address),
+        BigNumber.from(uint256StakeAmount.low),
+        BigNumber.from(uint256StakeAmount.high),
+      ],
+      BigNumber.from("0"),
+    );
+  });
+  it("shouldn't allow staking 0", async function () {
+    const stakeTx = this.stakingBridge.connect(this.signers.alice).stake(0);
+    await expect(stakeTx).to.be.revertedWith("StakingBridge: amount 0");
+  });
+  it("should withdraw tokens from L2", async function () {
+    await this.stakingToken.connect(this.signers.admin).transfer(this.stakingBridge.address, STAKE_AMOUNT);
+    const uint256WithdrawAmount = toUint256(STAKE_AMOUNT);
+    const payload = [
+      BigNumber.from(WITHDRAW_MESSAGE),
+      BigNumber.from(this.signers.bob.address),
+      BigNumber.from(uint256WithdrawAmount.low),
+      BigNumber.from(uint256WithdrawAmount.high),
+    ];
+    await this.starknetMessaging.mockSendMessageFromL2(
+      BigNumber.from(MOCK_STAKING_L2_ADDRESS),
+      BigNumber.from(this.stakingBridge.address),
+      payload,
+    );
+
+    const withdrawTx = await this.stakingBridge.connect(this.signers.bob).withdraw(STAKE_AMOUNT);
+    await expect(withdrawTx)
+      .to.emit(this.stakingBridge, "LogWithdraw")
+      .withArgs(this.signers.bob.address, STAKE_AMOUNT);
+  });
+  it("should revert on invalid withdrawal", async function () {
+    await this.stakingToken.connect(this.signers.admin).transfer(this.stakingBridge.address, STAKE_AMOUNT);
+    const uint256WithdrawAmount = toUint256(STAKE_AMOUNT);
+    const payload = [
+      BigNumber.from(WITHDRAW_MESSAGE),
+      BigNumber.from(this.signers.bob.address),
+      BigNumber.from(uint256WithdrawAmount.low),
+      BigNumber.from(uint256WithdrawAmount.high),
+    ];
+    await this.starknetMessaging.mockSendMessageFromL2(
+      BigNumber.from(MOCK_STAKING_L2_ADDRESS),
+      BigNumber.from(this.stakingBridge.address),
+      payload,
+    );
+
+    const withdrawTx = this.stakingBridge.connect(this.signers.bob).withdraw(STAKE_AMOUNT.add(10));
+    await expect(withdrawTx).to.be.reverted;
+  });
+  it("should claim reward from l2 and mint reward tokens", async function () {
+    const uint256RewardAmount = toUint256(STAKE_AMOUNT);
+    const payload = [
+      BigNumber.from(CLAIM_REWARD_MESSAGE),
+      BigNumber.from(this.signers.alice.address),
+      BigNumber.from(uint256RewardAmount.low),
+      BigNumber.from(uint256RewardAmount.high),
+    ];
+    await this.starknetMessaging.mockSendMessageFromL2(
+      BigNumber.from(MOCK_STAKING_L2_ADDRESS),
+      BigNumber.from(this.stakingBridge.address),
+      payload,
+    );
+
+    const claimRewardTx = await this.stakingBridge.connect(this.signers.alice).claimReward(STAKE_AMOUNT);
+    const rewardTokenBalance = await this.rewardToken.balanceOf(this.signers.alice.address);
+    await expect(claimRewardTx)
+      .to.emit(this.stakingBridge, "LogClaimReward")
+      .withArgs(this.signers.alice.address, STAKE_AMOUNT);
+    expect(rewardTokenBalance).to.be.equal(STAKE_AMOUNT);
+  });
+  it("should revert on invalid claim reward", async function () {
+    const uint256RewardAmount = toUint256(STAKE_AMOUNT);
+    const payload = [
+      BigNumber.from(CLAIM_REWARD_MESSAGE),
+      BigNumber.from(this.signers.alice.address),
+      BigNumber.from(uint256RewardAmount.low),
+      BigNumber.from(uint256RewardAmount.high),
+    ];
+    await this.starknetMessaging.mockSendMessageFromL2(
+      BigNumber.from(MOCK_STAKING_L2_ADDRESS),
+      BigNumber.from(this.stakingBridge.address),
+      payload,
+    );
+
+    const claimRewardTx = this.stakingBridge.connect(this.signers.alice).claimReward(STAKE_AMOUNT.add(10));
+
+    await expect(claimRewardTx).to.be.reverted;
   });
 });

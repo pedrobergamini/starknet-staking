@@ -90,36 +90,34 @@ protostar build
 
 We recommend to run L1 and L2 testnets in different terminals.
 
-**Start L2 testnet**
-
-We're using the active environment, but you can switch to a venv config and run:
-
-```bash
-yarn testnet:l2
-```
-
-**Start L1 testnet**
-
-Start a L1 testnet by running:
-
-```bash
-yarn testnet:l1
-```
-
 ### Run tests
+
+L1 contracts use a StarkNet Core mock to simulate sending and consuming messages and at the moment are tested using hardhat.
+
+Run L1 tests:
+
+```bash
+yarn test:l1
+```
 
 L2 contracts are tested using [Protostar](https://docs.swmansion.com/protostar/docs/tutorials/testing), which allows writing Cairo test files and are present inside the `test/l2/**` directory.
 
 Run L2 tests:
 
 ```bash
-protostar test
+yarn test:l2
 ```
 
-L1 tests use `starknet-devnet` and the `starknet-hardhat-plugin` in order to verify the messaging operations. Initialize in two terminal windows the `l1_testnet` and `l2_testnet` networks, and then run:
+And in order to run all tests:
 
 ```bash
 yarn test
 ```
 
 Contributions are welcome by picking any open issue or simply creating a new one, this repo is still under improvements and is open to any suggestions/feature requests.
+
+References:
+[Immutable StarkNet contracts](https://github.com/immutable/imx-starknet)
+[Synthetix](https://github.com/Synthetixio/synthetix)
+[AAVE StarkNet Bridge](https://github.com/aave-starknet-project/aave-starknet-bridge)
+[StarkNet DAI Bridge](https://github.com/makerdao/starknet-dai-bridge)

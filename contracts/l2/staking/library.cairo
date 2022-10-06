@@ -34,6 +34,7 @@ const MAX_UINT256_MEMBER = 2 ** 128 - 1;
 //
 // Events
 //
+
 @event
 func LogStake(user: felt, amount: Uint256, staked_from_l1: felt) {
 }
@@ -44,6 +45,10 @@ func LogWithdraw(user: felt, amount: Uint256, withdrawn_to_l1: felt) {
 
 @event
 func LogClaimReward(user: felt, recipient: felt, reward: Uint256, claimed_to_l1: felt) {
+}
+
+@event
+func LogSetStakingBridgeL1(staking_bridge_l1: felt) {
 }
 
 @event
@@ -309,6 +314,16 @@ namespace StakingRewards {
     // Mutative public functions
     //
 
+    @external
+    func set_staking_bridge_l1{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        staking_bridge: felt
+    ) {
+        StakingRewards_staking_bridge_l1.write(staking_bridge);
+        LogSetStakingBridgeL1.emit(staking_bridge);
+
+        return ();
+    }
+
     func set_rewards_distribution{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         rewards_distribution: felt
     ) {
@@ -433,8 +448,6 @@ namespace StakingRewards {
     ) {
         _assert_only_staking_bridge(from_address);
         _stake(l1_user, amount);
-        let staking_token_address = staking_token();
-        let (this_contract) = get_contract_address();
         StakingRewards_l1_users.write(l1_user, TRUE);
         LogStake.emit(l1_user, amount, TRUE);
 
@@ -469,8 +482,8 @@ namespace StakingRewards {
         with_attr error_message("Staking Rewards: {user} is a l2 user") {
             assert is_l1_user = TRUE;
         }
+
         _withdraw(caller, amount);
-        let staking_token_address = staking_token();
         let (message_payload: felt*) = alloc();
         let staking_bridge_l1_address = staking_bridge_l1();
         assert message_payload[0] = WITHDRAW_MESSAGE;
