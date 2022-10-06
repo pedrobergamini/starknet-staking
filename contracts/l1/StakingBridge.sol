@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { IStarkNetMessaging } from "./interfaces/IStarkNetMessaging.sol";
+import { IStarknetMessaging } from "./starknet/core/interfaces/IStarknetMessaging.sol";
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
 
@@ -9,7 +9,7 @@ contract StakingBridge {
     using SafeERC20 for IERC20;
 
     /// @dev StarkNet Messaging address
-    IStarkNetMessaging public starknet;
+    IStarknetMessaging public starknet;
     /// @dev Staking token address
     IERC20 public stakingToken;
     /// @dev Reward token address
@@ -33,7 +33,7 @@ contract StakingBridge {
     event LogClaimReward(address user, uint256 amount);
 
     constructor(
-        IStarkNetMessaging _starknet,
+        IStarknetMessaging _starknet,
         IERC20 _stakingToken,
         IERC20Mintable _rewardToken,
         uint256 _staking
