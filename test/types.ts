@@ -1,5 +1,6 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
+import { StakingBridge } from "../src/types";
 import type { ERC20Mock } from "../src/types/contracts/l1/mocks";
 import type { StarknetMessagingMock } from "../src/types/contracts/l1/mocks/StarknetMessagingMock";
 import type { StakingBridge__factory } from "../src/types/factories/contracts/l1";
@@ -14,6 +15,7 @@ declare module "mocha" {
     stakingToken: ERC20Mock;
     rewardToken: ERC20Mock;
     starknetMessaging: StarknetMessagingMock;
+    stakingBridge: StakingBridge;
   }
 }
 

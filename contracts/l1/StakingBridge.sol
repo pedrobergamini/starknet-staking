@@ -5,8 +5,6 @@ import { IStarknetMessaging } from "./starknet/core/interfaces/IStarknetMessagin
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20Mintable } from "./interfaces/IERC20Mintable.sol";
 
-import "hardhat/console.sol";
-
 contract StakingBridge {
     using SafeERC20 for IERC20;
 
@@ -61,8 +59,6 @@ contract StakingBridge {
         payload[1] = _amount & ((1 << 128) - 1);
         payload[2] = _amount >> 128;
 
-        console.log(payload[0], payload[1], payload[2], _amount);
-
         stakingToken.safeTransferFrom(msg.sender, address(this), _amount);
         starknet.sendMessageToL2(staking, STAKE_L1_SELECTOR, payload);
 
@@ -95,20 +91,12 @@ contract StakingBridge {
     /// @param _message L2 message id
     /// @param _amount amount of tokens to withdraw/claim
     function _consumeMessage(uint256 _message, uint256 _amount) internal {
-        // solhint-disable no-inline-assembly
-        assembly {
-            let ptr := mload(0x40)
-            mstore(ptr, 0xcd26351a)
-            mstore(add(ptr, 0x20), _message)
-            mstore(add(ptr, 0x40), caller())
-            mstore(add(ptr, 0x60), and(_amount, shl(0x01, sub(0x80, 0x01))))
-            mstore(add(ptr, 0x80), shr(_amount, 0x80))
-            let callStatus := call(gas(), sload(0x03), 0x00, ptr, 0xa0, ptr, 0x20)
-            let success := and(callStatus, gt(returndatasize(), 31))
+        uint256[] memory payload = new uint256[](4);
+        payload[0] = _message;
+        payload[1] = uint256(uint160(msg.sender));
+        payload[2] = _amount & ((1 << 128) - 1);
+        payload[3] = _amount >> 128;
 
-            if not(success) {
-                revert(ptr, returndatasize())
-            }
-        }
+        starknet.consumeMessageFromL2(staking, payload);
     }
 }
